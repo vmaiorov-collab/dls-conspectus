@@ -61,7 +61,7 @@
 <script>
 const DATA = [
   { name: "Математика и инструменты", badge: "∑", lessons: [
-    { n: "01", title: "Линейная алгебра для Data Science. Часть 1: векторы", id: "fyu2KiC2gwY", dur: "34 мин" },
+    { n: "01", title: "Линейная алгебра для Data Science. Часть 1: векторы", id: "fyu2KiC2gwY", dur: "34 мин", href: "lessons/01-vektory.html" },
     { n: "02", title: "Линейная алгебра для Data Science. Часть 2: матрицы", id: "uIx5Cegf6Bk", dur: "25 мин" },
     { n: "03", title: "Линейная алгебра для Data Science. Часть 3: операции над матрицами", id: "O6Z7BaJUoaA", dur: "32 мин" },
     { n: "04", title: "Линейная алгебра для Data Science. Часть 4: линейные операторы", id: "nJMD5z0RaWQ", dur: "31 мин" },
@@ -142,7 +142,7 @@ const DATA = [
   ]}
 ];
 
-/*SECTIONS*/const SECTIONS = {};/*/SECTIONS*/
+/*SECTIONS*/const SECTIONS = {"lessons/01-vektory.html":[["s1","Что такое вектор","data science"],["s1-1","Вектор как упорядоченный набор чисел","begin dots end mathbb pmatrix vdots"],["s1-2","Геометрический смысл","mathbb"],["s2","Операции над векторами","begin cdot end lambda n+y pmatrix qquad tfrac12 tfrac32 top vdots x+y"],["s2-1","Геометрия операций","lambda tfrac12 x+y"],["s3","Линейное пространство","cdot lambda mathbb mathcal qquad rightarrow subseteq x+y"],["s4","Линейная оболочка","alpha dots dots+ langle mathbb mathcal mid rangle"],["s4-1","Пример: оболочка двух векторов в $\\mathbb{R}^3$","alpha beta lambda langle rangle"],["s5","Линейная зависимость и независимость","alpha dots dots+ longrightarrow mathbb sum top"],["s5-1","Пример: стандартные базисные векторы","alpha begin cdot0 cdot0+ cdot1+ end mathbb pmatrix quad"],["s6","Базис","dots langle mathbb mathcal rangle"],["s6-1","Пример: стандартный базис $\\mathbb{R}^3$","alpha mathbb top"],["s6-2","Свойства базиса","alpha beta mathbb mathcal sum"],["s7","Размерность и главная теорема","dim mathcal"],["s7-1","Теорема о $n+1$ векторе","mathbb n+1"],["s8","Задачи",""],["s8-1","Задача 1. Доказать, что векторы ЛНЗ","begin blacksquare cases end mathbb pmatrix qquad text x+2z x+2z+3 x+2z+t x+3z x+4z x+y x+z xa+yb+zc+td y+z"],["s8-2","Задача 2. Найти базис подпространства","alpha beta cdot cdot1 dim gamma le3 mathbb mathcal notin top x+2 x+2y y+3z z+t"],["s8-3","Задача 3. Разложить вектор по базису","alpha alpha+3 begin beta beta+ cases cdot cdot2 cdot2+ end gamma mathcal pmatrix top"],["s9","Итоги","alpha deep kruzhok learning n+1 olympiads rightarrow school sum yaintern yandex"]]};/*/SECTIONS*/
 
 const pick = document.getElementById("pick"), res = document.getElementById("res"), q = document.getElementById("q"), nores = document.getElementById("nores");
 const esc = (x) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
