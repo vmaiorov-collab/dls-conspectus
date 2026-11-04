@@ -815,11 +815,11 @@ html[data-look="paper"] .look-toggle{border-radius:6px}
 <p>Семинар продолжает разговор о библиотеках, которые применяются в машинном обучении и анализе данных (предыдущая часть — <a href="05-numpy.html">NumPy</a>). Библиотека <strong>pandas</strong> очень активно используется в современном data science, потому что даёт широкий функционал для работы с данными: их можно загружать, просматривать и по-разному преобразовывать. Именно этим и занимается семинар. Работа идёт в Jupyter-ноутбуке (в записи это Google Colab).</p>
 <h3 id="s1-1">Установка и импорт <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=47" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">0:47</a></h3>
 <p>В Anaconda pandas, скорее всего, уже установлена. Если нет, то нужно раскомментировать одну из двух строк, в зависимости от пакетного менеджера. Для pandas, как и для NumPy, есть стандартное сокращение <code>pd</code>; им пользуются все, поэтому лектор очень рекомендует делать так же.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># !pip3 install pandas
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code># !pip3 install pandas
 # !conda install pandas
 
 import numpy as np
-import pandas as pd   # стандартное сокращение для pandas. Всегда используйте его!</code></pre></div>
+import pandas as pd   # стандартное сокращение для pandas. Всегда используйте его!</code></pre></div></div>
 <p>В pandas два основных класса для представления данных: <code>pd.Series</code> (одномерные данные) и <code>pd.DataFrame</code> (двумерные данные, таблицы). Сначала разбирается <code>Series</code>.</p>
 
 <h2 id="s2">2. pd.Series: одномерные данные <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=100" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">1:40</a></h2>
@@ -841,43 +841,43 @@ import pandas as pd   # стандартное сокращение для panda
 
 <h3 id="s2-1">Создание Series <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=175" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">2:55</a></h3>
 <p>Пример: шесть дней измерялась температура, на четвёртый день измерений не было. Список передаётся в конструктор <code>pd.Series</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>some_list = [1, 3, 5, np.nan, 6, 8]
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>some_list = [1, 3, 5, np.nan, 6, 8]
 ser_1 = pd.Series(some_list)
-ser_1</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>0    1.0
+ser_1</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>0    1.0
 1    3.0
 2    5.0
 3    NaN
 4    6.0
 5    8.0
-dtype: float64</code></pre></div>
+dtype: float64</code></pre></div></div>
 <p>Индекс по умолчанию — числа с нуля. Тип данных оказался <code>float64</code>, хотя передавались целые: это немного неожиданно. Причина — именно пропуск. <code>np.nan</code> имеет тип <code>float</code>, а <code>Series</code>, как и массивы NumPy, умеет работать только с однородными данными, то есть с данными одного типа. Поэтому все значения приводятся к одному типу, в данном случае к <code>float</code>: целые числа приводятся к <code>float</code> без проблем, а обратно не всегда.</p>
 <div class="note"><span class="lbl">Важное дополнение</span><br>Это не совсем строгая формулировка. У <code>Series</code> один <code>dtype</code> на весь столбец, но он может быть и <code>object</code> (например, для строк). Кроме того, в современных версиях pandas есть «обнуляемый» целый тип <code>Int64</code> (с большой буквы), который хранит пропуски как <code>pd.NA</code> и не превращает целые в вещественные: <code>pd.Series([1, 3, None], dtype="Int64")</code>. Лектор этого не показывал.</div>
 
 <h3 id="s2-2">Индекс и имя <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=264" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">4:24</a></h3>
 <p>Числовой индекс неинформативен, а по индексу мы обращаемся к данным. Поэтому в конструктор передают аргумент <code>index</code> с одномерным массивом (списком) меток. Тогда значение за четвёртый день берётся по метке <code>'4th day'</code> и равно <code>nan</code>. Ещё Series можно дать имя аргументом <code>name</code>; оно отображается внизу при выводе.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>ind = ['1st day', '2nd day', '3rd day', '4th day', '5rd day', '6th day']
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>ind = ['1st day', '2nd day', '3rd day', '4th day', '5rd day', '6th day']
 ser_2 = pd.Series(some_list, index=ind)
 ser_2['4th day']            # nan
 
 ser_3 = pd.Series(some_list, index=ind, name='Temperature')
-ser_3</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>1st day    1.0
+ser_3</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>1st day    1.0
 2nd day    3.0
 3rd day    5.0
 4th day    NaN
 5rd day    6.0
 6th day    8.0
-Name: Temperature, dtype: float64</code></pre></div>
+Name: Temperature, dtype: float64</code></pre></div></div>
 
 <h3 id="s2-3">Индексирование по номерам и срезы <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=320" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">5:20</a></h3>
 <p>С индексами можно работать как с обычным списком: обращаться не только по метке, но и по номеру, брать срезы. Срезы работают так же, как для одномерных массивов: левая граница включается, правая не включается. Можно и перевернуть данные срезом с шагом <code>-1</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>print(ser_3[0])
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>print(ser_3[0])
 print('-----------')
 print(ser_3[1:3])
 print('-----------')
-print(ser_3[::-1])</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>1.0
+print(ser_3[::-1])</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>1.0
 -----------
 2nd day    3.0
 3rd day    5.0
@@ -889,45 +889,45 @@ Name: Temperature, dtype: float64
 3rd day    5.0
 2nd day    3.0
 1st day    1.0
-Name: Temperature, dtype: float64</code></pre></div>
+Name: Temperature, dtype: float64</code></pre></div></div>
 <div class="note"><span class="lbl">Важное дополнение</span><br>Здесь <code>ser_3[0]</code> работает, потому что метки строковые, и число <code>0</code> воспринимается как позиция. Если бы индекс состоял из целых чисел, то <code>ser[0]</code> искало бы <em>метку</em> 0. В новых версиях pandas для позиции с такой неоднозначностью рекомендуют <code>ser.iloc[0]</code> (см. <a href="#s3-4">универсальное индексирование</a>).</div>
 
 <h3 id="s2-4">Индексирование по условию <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=378" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">6:18</a></h3>
 <p>Индексировать важно не только по числам, но и по условиям; это похоже на NumPy, условие задаётся так же. Создадим <code>Series</code> с индексом из диапазона дат (<code>pd.date_range('20190101', periods=10)</code>, десять дней подряд) и случайными числами от 0 до 1 в качестве данных. Можно считать, что для каждого дня записана вероятность наступления какого-то события.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>date_range = pd.date_range('20190101', periods=10)
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>date_range = pd.date_range('20190101', periods=10)
 ser_4 = pd.Series(np.random.rand(10), index=date_range)
-ser_4</code></pre></div>
+ser_4</code></pre></div></div>
 <p>Выражение <code>ser_4 > 0.5</code> возвращает новый <code>Series</code> типа <code>bool</code> (как и в NumPy). Если передать это выражение в квадратные скобки, выведутся только те элементы, для которых оно истинно.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>ser_4 &gt; 0.5                      # Series из True / False
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>ser_4 &gt; 0.5                      # Series из True / False
 ser_4[ser_4 &gt; 0.5]               # только значения &gt; 0.5
 ser_4[(ser_4 &gt; 0.6) | (ser_4 &lt; 0.2)]   # логическое ИЛИ
-ser_4[(ser_4 &gt; 0.6) &amp; (ser_4 &lt; 0.2)]   # логическое И -&gt; пустой Series</code></pre></div>
+ser_4[(ser_4 &gt; 0.6) &amp; (ser_4 &lt; 0.2)]   # логическое И -&gt; пустой Series</code></pre></div></div>
 <p>Знак <code>|</code> — логическое «или», <code>&amp;</code> — логическое «и». Последнее выражение даёт пустой <code>Series([], Freq: D, dtype: float64)</code>, потому что условия не пересекаются: число не может быть одновременно больше 0.6 и меньше 0.2.</p>
 <div class="note"><span class="lbl">Важное дополнение</span><br>Скобки вокруг каждого сравнения обязательны: приоритет у <code>&amp;</code> и <code>|</code> выше, чем у <code>&gt;</code> и <code>&lt;</code>. Без скобок выражение вычислится неверно или выдаст ошибку. Вместо <code>and</code>/<code>or</code> для <code>Series</code> использовать нельзя.</div>
 
 <h3 id="s2-5">Сортировки <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=523" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">8:43</a></h3>
 <p><code>Series</code> можно сортировать двумя способами: по индексу — <code>sort_index()</code> (все даты идут в хронологическом порядке) и по значениям — <code>sort_values()</code> (значения упорядочены, индексы «перемешиваются» вместе с ними).</p>
 <p>Важно: <code>sort_index</code> и <code>sort_values</code> <strong>не изменяют</strong> исходный объект, а создают новый. Если после этого вывести <code>ser_4</code>, он будет прежним. Чтобы заменить объект на отсортированный, нужно присвоить результат.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>ser_4.sort_index()
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>ser_4.sort_index()
 ser_4.sort_values()
 ser_4            # не изменился
-ser_4 = ser_4.sort_values()   # теперь изменился</code></pre></div>
+ser_4 = ser_4.sort_values()   # теперь изменился</code></pre></div></div>
 
 <h3 id="s2-6">Операции над Series <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=598" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">9:58</a></h3>
 <p>Операции очень похожи на NumPy. К <code>Series</code> можно прибавлять скаляр (прибавляется к каждому элементу). Все универсальные функции NumPy (<code>sin</code>, <code>cos</code>, <code>exp</code>, <code>log</code> и т.д.) применяются поэлементно к значениям.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>ser_4 + 100
-np.exp(ser_4)</code></pre></div>
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>ser_4 + 100
+np.exp(ser_4)</code></pre></div></div>
 <p>Арифметические операции между двумя <code>Series</code> тоже поэлементные, но, в отличие от NumPy, операнды <strong>могут быть разного размера</strong>. Пример: <code>term_1</code> размера 5 и <code>term_2</code> размера 6, оба заполнены случайными целыми от 0 до 10.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>term_1 = pd.Series(np.random.randint(0, 10, 5))
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>term_1 = pd.Series(np.random.randint(0, 10, 5))
 term_2 = pd.Series(np.random.randint(0, 10, 6))
-term_1 + term_2</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>0    14.0
+term_1 + term_2</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>0    14.0
 1     8.0
 2     6.0
 3    14.0
 4    14.0
 5     NaN
-dtype: float64</code></pre></div>
+dtype: float64</code></pre></div></div>
 <p>Первые пять значений — обычные суммы. Последнее — <code>NaN</code>: меньший <code>Series</code> автоматически дополнился <code>NaN</code> до размера шесть, а <code>NaN</code> плюс любое число даёт <code>NaN</code>. Поскольку появился <code>NaN</code>, тип сменился с <code>int</code> на <code>float</code>. Как и в NumPy, у <code>Series</code> есть атрибут <code>shape</code>: <code>term_1.shape</code> даёт <code>(5,)</code>, то есть число строк.</p>
 <div class="note"><span class="lbl">Развёрнутое объяснение</span><br>Точнее, при сложении pandas <em>выравнивает</em> операнды по индексу: берётся объединение меток обоих индексов, а для меток, которых нет в одном из операндов, подставляется <code>NaN</code>. В примере метки 0–4 есть у обоих, а метка 5 только у <code>term_2</code>. Чтобы вместо <code>NaN</code> получить значение, можно использовать <code>term_1.add(term_2, fill_value=0)</code> (собственный пример, лектор его не показывал).</div>
 
@@ -954,48 +954,48 @@ dtype: float64</code></pre></div>
 
 <h3 id="s3-1">Создание из словаря <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=749" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">12:29</a></h3>
 <p>Первый способ — словарь: ключ соответствует названию столбца, а значение по этому ключу — это сам столбец (<code>Series</code>). Если столбец короче максимального, он, как и при сложении, дополняется <code>NaN</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># DataFrame можно составить из словаря. Ключ будет соответствовать колонке
-some_dict = {'one':   pd.Series([1, 2, 3],    index=['a', 'b', 'c']),
-             'two':   pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd']),
-             'three': pd.Series([5, 6, 7, 8], index=['a', 'b', 'c', 'd'])}
-df = pd.DataFrame(some_dict)
-df</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>     one  two  three
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>C++</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code><span class="p"># DataFrame можно составить из словаря. Ключ будет соответствовать колонке</span>
+some_dict = {'one':   pd.<span class="f">Series</span>([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>],    index=[<span class="s">'a'</span>, <span class="s">'b'</span>, <span class="s">'c'</span>]),
+             'two':   pd.<span class="f">Series</span>([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>], index=[<span class="s">'a'</span>, <span class="s">'b'</span>, <span class="s">'c'</span>, <span class="s">'d'</span>]),
+             'three': pd.<span class="f">Series</span>([<span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8</span>], index=[<span class="s">'a'</span>, <span class="s">'b'</span>, <span class="s">'c'</span>, <span class="s">'d'</span>])}
+df = pd.<span class="f">DataFrame</span>(some_dict)
+df</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>     one  two  three
 a    1.0    1      5
 b    2.0    2      6
 c    3.0    3      7
-d    NaN    4      8</code></pre></div>
+d    NaN    4      8</code></pre></div></div>
 
 <h3 id="s3-2">Создание из списка списков <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=796" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">13:16</a></h3>
 <p>Второй способ — список списков (матрица): внутри лежат <em>строки</em> будущей таблицы. Матрица передаётся первым аргументом; имена столбцов задаются аргументом <code>columns</code>, а при желании своих индексов — аргументом <code>index</code>. Получается тот же <code>DataFrame</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># Альтернативно, из списка списков с аргументом columns
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code># Альтернативно, из списка списков с аргументом columns
 some_array = [[1, 1, 5], [2, 2, 6], [3, 3, 7], [np.nan, 4, 8]]
 df = pd.DataFrame(some_array, index=['a', 'b', 'c', 'd'],
                   columns=['one', 'two', 'three'])
-df</code></pre></div>
+df</code></pre></div></div>
 
 <h3 id="s3-3">Значения, имена столбцов, переименование <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=854" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">14:14</a></h3>
 <p>Чтобы извлечь данные обратно в виде матрицы, есть атрибут <code>df.values</code>: он возвращает массив NumPy (<code>array([[1., 1., 5.], [2., 2., 6.], [3., 3., 7.], [nan, 4., 8.]])</code>). Чтобы посмотреть названия столбцов, есть <code>df.columns</code>: список названий (<code>Index(['one', 'two', 'three'], dtype='object')</code>). Как и индекс, это <em>изменяемое</em> поле: ему можно присвоить новые названия.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>df.values
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>df.values
 df.columns
 df.columns = ['first_column', 'second_column', 'third_column']
 df.index = [1, 2, 3, 4]
-df</code></pre></div>
+df</code></pre></div></div>
 <p>И индексы, и названия столбцов изменились.</p>
 
 <h3 id="s3-4">Индексирование DataFrame <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=925" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">15:25</a></h3>
 <p>Способов индексирования несколько, и работают они по-разному (в ноутбуке: «не все из них хорошие»). Дальше три группы: по колонкам, по строкам срезами и универсальное индексирование <code>.loc</code>/<code>.iloc</code>.</p>
 <h3 id="s3-4a">По колонкам <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=940" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">15:40</a></h3>
 <p>Если в квадратные скобки передать строку, pandas воспринимает её как название столбца и возвращает <code>Series</code>. Если название — одно слово без пробелов и спецсимволов, можно использовать точку: <code>df.first_column</code> — то же самое. Если передать <em>список</em> названий, вернётся <code>DataFrame</code> из этих столбцов (двух и более). Чтобы получить <code>DataFrame</code> из одного столбца, нужно передать список из одного названия (двойные квадратные скобки).</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>first_column = df['first_column']                 # Series
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>first_column = df['first_column']                 # Series
 df.first_column                                   # то же самое
 subset_dataframe = df[['first_column', 'second_column']]   # DataFrame
-one_column_dataframe = df[['first_column']]       # DataFrame из одного столбца</code></pre></div>
+one_column_dataframe = df[['first_column']]       # DataFrame из одного столбца</code></pre></div></div>
 <h3 id="s3-4b">По строкам <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1037" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">17:17</a></h3>
 <p>К строкам по номеру, как в <code>Series</code>, обращаться нельзя: <code>df[1]</code> выдаёт <code>KeyError: 1</code>. Дело в том, что pandas воспринимает любое число в скобках как <em>название столбца</em>, а столбца «1» нет. Зато <strong>срезы</strong> работают и для строк. Это обращение по <em>номеру</em> строки, как в <code>Series</code> и одномерных массивах: левая граница включается, правая нет.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>df[1]        # KeyError: 1  (не сработает)
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>df[1]        # KeyError: 1  (не сработает)
 df[:1]       # строка с индексом 1
-df[1:4]      # строки с индексами 2, 3, 4</code></pre></div>
+df[1:4]      # строки с индексами 2, 3, 4</code></pre></div></div>
 <p>Срез <code>df[1:4]</code> даёт строки с номерами 1, 2, 3, которым соответствуют индексы 2, 3, 4 (нумерация с нуля, а индексы мы переименовали в 1–4). К <code>DataFrame</code> можно обращаться и по индексу, но тогда всё интереснее — это следующий раздел.</p>
 
 <h3 id="s3-5">Универсальное индексирование: .iloc и .loc <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1163" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">19:23</a></h3>
@@ -1004,10 +1004,10 @@ df[1:4]      # строки с индексами 2, 3, 4</code></pre></div>
 <li><code>.iloc</code> — по <strong>номерам</strong> (позициям) и строк, и столбцов. Правая граница среза <em>не</em> включается.</li>
 <li><code>.loc</code> — по <strong>названиям</strong> индекса и столбцов. Правая граница среза <em>включается</em>.</li>
 </ul>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># по номерам
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code># по номерам
 df.iloc[1:3, :2]
 # по названиям
-df.loc[1:3, ['first_column', 'second_column']]</code></pre></div>
+df.loc[1:3, ['first_column', 'second_column']]</code></pre></div></div>
 <p>В первом случае индекс из позиций 1 и 2 соответствует меткам 2 и 3, а столбцы с номерами 0 и 1 (<code>first_column</code>, <code>second_column</code>): получаем две строки (с индексами 2 и 3). Во втором случае тот же по виду срез <code>1:3</code> даёт <em>три</em> строки (индексы 1, 2, 3), потому что при обращении по названию правая граница включается. Столбцы здесь задаются названиями.</p>
 <figure class="viz"><svg viewBox="0 0 520 170" role="img" aria-label="iloc и loc: срез 1:3 и граница" xmlns="http://www.w3.org/2000/svg">
 <rect width="520" height="170" rx="14" fill="#141a24"/>
@@ -1026,24 +1026,24 @@ df.loc[1:3, ['first_column', 'second_column']]</code></pre></div>
 
 <h3 id="s3-6">Модификация: новые колонки <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1355" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">22:35</a></h3>
 <p>Добавить столбец просто: обратиться к колонке с новым названием, как к существующей, и присвоить значения. Поскольку колонки — это <code>Series</code>, к ним применимы арифметические операции и функции; результат можно записать и в новую, и в уже существующую колонку.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>new_column = [5, 2, 1, 4]
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>new_column = [5, 2, 1, 4]
 df['new_column'] = new_column
 df['first_column'] = df['first_column'] * 10
-df</code></pre></div>
+df</code></pre></div></div>
 <p>В результате первый столбец стал <code>10.0, 20.0, 30.0, NaN</code>, а справа добавился <code>new_column</code> со значениями 5, 2, 1, 4.</p>
 
 <h2 id="s4">4. Реальный датасет: Титаник <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1423" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">23:43</a></h2>
 <p>Дальше работа идёт на реальном датасете «Титаник»: информация о том, выжил ли пассажир, отправлявшийся на Титанике. Он состоит из двух файлов: <code>titanic_data.csv</code> (информация о пассажирах) и <code>titanic_surv.csv</code> (метка: выжил — 1, нет — 0).</p>
 <h3 id="s4-1">Чтение из файла <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1454" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">24:14</a></h3>
 <p>Данные обычно хранятся либо в <code>.csv</code> (Comma-Separated Values, значения через запятую), либо в Excel-файлах <code>.xls</code>. Чаще используется <code>.csv</code>: он компактнее и удобнее, легко читается. Для загрузки есть метод <code>pd.read_csv</code>; на вход нужно передать путь к файлу. Если файл скачан локально, достаточно раскомментировать строку с именем файла. Лектор использует ссылку (файлы лежат в Dropbox), и она передаётся первым аргументом вместо пути.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># df_1 = pd.read_csv('titanic_data.csv')
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code># df_1 = pd.read_csv('titanic_data.csv')
 pass_link = '&lt;ссылка на titanic_data.csv&gt;'  # или локальный путь
-titanic_passengers = pd.read_csv(pass_link, index_col='PassengerId')</code></pre></div>
+titanic_passengers = pd.read_csv(pass_link, index_col='PassengerId')</code></pre></div></div>
 <h3 id="s4-2">head и tail <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1547" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">25:47</a></h3>
 <p>Датасеты бывают огромными, и выводить их целиком неудобно. Метод <code>head()</code> выводит первые строки: по умолчанию пять, <code>head(10)</code> — десять. Есть и <code>tail()</code>, выводящий последние несколько строк.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>print('Всего пассажиров: ', len(titanic_passengers))
-titanic_passengers.head(10)</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>Всего пассажиров:  891</code></pre></div>
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>print('Всего пассажиров: ', len(titanic_passengers))
+titanic_passengers.head(10)</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>Всего пассажиров:  891</code></pre></div></div>
 <h3 id="s4-3">Какие есть колонки <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1577" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">26:17</a></h3>
 <ul>
 <li><code>PassengerId</code> — уникальный номер пассажира;</li>
@@ -1063,10 +1063,10 @@ titanic_passengers.head(10)</code></pre></div>
 <li><code>info()</code> — названия столбцов, число непустых (<code>non-null</code>) элементов в каждом и тип данных.</li>
 <li><code>describe()</code> — собирательные статистики; применяется только к <em>численным</em> столбцам.</li>
 </ul>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>titanic_passengers.shape      # (891, 10)
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>titanic_passengers.shape      # (891, 10)
 titanic_passengers.info()
-titanic_passengers.describe()</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
+titanic_passengers.describe()</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
 Int64Index: 891 entries, 1 to 891
 Data columns (total 10 columns):
  #   Column    Non-Null Count  Dtype
@@ -1081,7 +1081,7 @@ Data columns (total 10 columns):
  7   Fare      891 non-null    float64
  8   Cabin     204 non-null    object
  9   Embarked  889 non-null    object
-dtypes: float64(2), int64(3), object(5)</code></pre></div>
+dtypes: float64(2), int64(3), object(5)</code></pre></div></div>
 <p>Типы: <code>int64</code> (например, класс 1, 2, 3), <code>float64</code> и <code>object</code> — как правило, строки (имя, номер билета и т.д.). Пропусков много в <code>Age</code> (714 из 891), в <code>Cabin</code> (204) и немного в <code>Embarked</code> (889).</p>
 <p>Результат <code>describe()</code> для колонки <code>Age</code>: <code>count 714</code>, <code>mean 29.699118</code>, <code>std 14.526497</code>, <code>min 0.42</code>, <code>25% 20.125</code>, <code>50% 28.0</code>, <code>75% 38.0</code>, <code>max 80.0</code>. Для каждого столбца видно число элементов, среднее, стандартное отклонение, минимум, максимум и квантили (25%, 50% — медиана, 75%). Читать так: 50% пассажиров были моложе 28 лет, 75% — моложе 38; самому старшему было 80, а самому младшему не было и года.</p>
 <div class="note"><span class="lbl">Важное дополнение</span><br>Остальные строки <code>describe()</code> с экрана: для <code>Pclass</code> среднее 2.308642, для <code>SibSp</code> 0.523008, для <code>Parch</code> 0.381594, для <code>Fare</code> 32.204208 при максимуме 512.329200. Статистика по <code>Age</code> считается только по 714 непустым значениям.</div>
@@ -1090,12 +1090,12 @@ dtypes: float64(2), int64(3), object(5)</code></pre></div>
 <h3 id="s5-1">Задание 1: описать датасет <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1891" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">31:31</a></h3>
 <p><strong>Условие.</strong> Описать датасет: какое распределение женщин и мужчин; сколько пассажиров ехало в каждом классе; какой средний, минимальный и максимальный возраст пассажиров.</p>
 <p><strong>Идея.</strong> К столбцам (это <code>Series</code>) применимы те же функции, что и в NumPy, — <code>min</code>, <code>mean</code>, <code>max</code>. А для подсчёта, сколько раз встречается каждое значение, есть очень полезный метод <code>value_counts</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>(titanic_passengers['Age'].min(),
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>(titanic_passengers['Age'].min(),
  titanic_passengers['Age'].mean(),
  titanic_passengers['Age'].max())
 titanic_passengers['Sex'].value_counts()
-titanic_passengers['Pclass'].value_counts()</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>(0.42, 29.69911764705882, 80.0)
+titanic_passengers['Pclass'].value_counts()</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>(0.42, 29.69911764705882, 80.0)
 
 male      577
 female    314
@@ -1104,7 +1104,7 @@ Name: Sex, dtype: int64
 3    491
 1    216
 2    184
-Name: Pclass, dtype: int64</code></pre></div>
+Name: Pclass, dtype: int64</code></pre></div></div>
 <p><strong>Ответ.</strong> Возраст: от 0.42 до 80, в среднем около 29.7 (те же числа, что в <code>describe</code>). Мужчин 577, женщин 314. В третьем классе ехало 491 пассажир, в первом 216, во втором 184.</p>
 
 <h3 id="s5-2">Задание 2: groupby <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=1988" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">33:08</a></h3>
@@ -1123,9 +1123,9 @@ Name: Pclass, dtype: int64</code></pre></div>
 <text x="450" y="57">38.23</text><text x="450" y="105">29.88</text><text x="450" y="153">25.14</text>
 <g stroke="#9aa4b2" stroke-width="2" marker-end="url(#ar)"><line x1="112" y1="104" x2="196" y2="104"/><line x1="322" y1="52" x2="396" y2="52"/><line x1="322" y1="100" x2="396" y2="100"/><line x1="322" y1="148" x2="396" y2="148"/></g>
 </g></svg><figcaption>Разбить по значению ключа, посчитать агрегат в каждой группе, собрать результат.</figcaption></figure>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>titanic_passengers.groupby(['Pclass'])             # объект DataFrameGroupBy
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>titanic_passengers.groupby(['Pclass'])             # объект DataFrameGroupBy
 titanic_passengers.groupby(['Pclass']).mean()
-titanic_passengers.groupby(['Pclass'])['Age'].mean()</code></pre></div>
+titanic_passengers.groupby(['Pclass'])['Age'].mean()</code></pre></div></div>
 <p>Сам <code>groupby</code> возвращает непонятный объект (<code>DataFrameGroupBy</code>), но к нему можно применять <em>агрегирующие</em> функции: среднее, минимум, максимум, подсчёт числа элементов, сумму. На выходе получается <code>DataFrame</code>: <code>.mean()</code> даёт среднее всех числовых признаков по классам. Если нужен только возраст, указывают столбец в квадратных скобках, и возвращается <code>Series</code> с интересующим столбцом.</p>
 <p><strong>Ответ.</strong> Средний возраст: класс 1 — 38.233441, класс 2 — 29.877630, класс 3 — 25.140620. Для остальных числовых столбцов <code>.mean()</code> показывает, например, <code>Fare</code>: 84.154687, 20.662183, 13.675550.</p>
 <div class="note"><span class="lbl">Важное дополнение</span><br>В новых версиях pandas <code>groupby(...).mean()</code> при наличии нечисловых столбцов может выдать ошибку; тогда пишут <code>.mean(numeric_only=True)</code> или сразу выбирают нужный столбец, как в последней строке.</div>
@@ -1135,18 +1135,18 @@ titanic_passengers.groupby(['Pclass'])['Age'].mean()</code></pre></div>
 <h3 id="s6-1">Задание 3: слить два датасета по индексу <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=2176" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">36:16</a></h3>
 <p><strong>Условие.</strong> Слить два датасета по колонке индекса: к таблице пассажиров добавить метку «выжил/нет» из второго файла.</p>
 <p><strong>Ход.</strong> Сначала загружается второй файл (<code>titanic_surv.csv</code>); в нём один столбец <code>Survived</code> со значениями 0 или 1.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code># df_2 = pd.read_csv('titanic_surv.csv')
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code># df_2 = pd.read_csv('titanic_surv.csv')
 surv_link = '&lt;ссылка на titanic_surv.csv&gt;'  # или локальный путь
 df_2 = pd.read_csv(surv_link)
-df_2.head()</code></pre></div>
+df_2.head()</code></pre></div></div>
 <p><strong>Нюанс с индексами.</strong> В первой таблице индекс — <code>PassengerId</code>, принимающий значения от 1. У второй индекс сгенерировался автоматически и идёт от 0. Чтобы таблицы слились корректно, индекс второй надо поменять на числа от 1 до 891: <code>np.arange(1, 892)</code> (правая граница не включается).</p>
 <p>Чтобы показать, что это работает не только когда индексы строго отсортированы, вторую таблицу перемешивают методом <code>sample</code>. Он возвращает подвыборку; при <code>frac=1</code> возвращается весь датасет целиком, но в перемешанном порядке. Затем <code>join</code>: он возвращает новую таблицу, поэтому результат нужно присвоить.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>df_2.index = np.arange(1, 892)
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>df_2.index = np.arange(1, 892)
 df_2 = df_2.sample(frac=1)      # перемешали строки
 df_2.head()                     # индексы в произвольном порядке (351, 122, 499, ...)
 
 titanic_passengers = titanic_passengers.join(df_2)
-titanic_passengers.head()</code></pre></div>
+titanic_passengers.head()</code></pre></div></div>
 <p><strong>Результат.</strong> В таблицу пассажиров добавился столбец <code>Survived</code>, заполненный значениями из <code>df_2</code> с совпавшим индексом (<code>PassengerId</code>), несмотря на то что порядок строк в <code>df_2</code> был произвольным.</p>
 <figure class="viz"><svg viewBox="0 0 520 190" role="img" aria-label="join по индексу" xmlns="http://www.w3.org/2000/svg">
 <rect width="520" height="190" rx="14" fill="#141a24"/>
@@ -1178,35 +1178,35 @@ titanic_passengers.head()</code></pre></div>
 <h3 id="s7-1">Задание 4: сколько выжило и как зависит от пола и возраста <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=2358" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">39:18</a></h3>
 <p><strong>Условие.</strong> Сколько всего выживших пассажиров? Сколько выживших по каждому из полов? Построить матрицу корреляций факта выживания, пола и возраста.</p>
 <p><strong>Общее число выживших</strong> можно посчитать двумя способами. Первый: уже знакомый <code>value_counts</code> по столбцу <code>Survived</code> — он считает количество нулей и единиц. Второй: выжившие обозначены единицей, а не выжившие нулём, поэтому достаточно просуммировать столбец: <code>.sum()</code>.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>titanic_passengers['Survived'].value_counts()   # 0: 549, 1: 342
-titanic_passengers['Survived'].sum()            # 342</code></pre></div>
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>titanic_passengers['Survived'].value_counts()   # 0: 549, 1: 342
+titanic_passengers['Survived'].sum()            # 342</code></pre></div></div>
 <p><strong>По полам.</strong> Статистика считается для каждого пола отдельно, значит, группируем по <code>Sex</code>, оставляем столбец <code>Survived</code> и суммируем:</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>titanic_passengers.groupby(['Sex'])['Survived'].sum()</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>Sex
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>titanic_passengers.groupby(['Sex'])['Survived'].sum()</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>Sex
 female    233
 male      109
-Name: Survived, dtype: int64</code></pre></div>
+Name: Survived, dtype: int64</code></pre></div></div>
 <p><strong>Ответ.</strong> Выжили 342 человека (549 погибли): 233 женщины и 109 мужчин, то есть женщин выжило больше, чем мужчин, несмотря на то, что женщин в датасете 314, а мужчин 577.</p>
 
 <h3 id="s7-2">Матрица корреляций <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=2482" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">41:22</a></h3>
 <p>Зависимость от пола видна, и хочется понять, насколько она велика. Матрица корреляций строится методом <code>.corr()</code>. Он применим только к <em>числовым</em> столбцам, а пол у нас хранится строками, поэтому его сначала преобразуют. Для этого создаётся отдельный <code>DataFrame</code> из нужных столбцов, и столбец <code>Sex</code> заменяется: выражение <code>(corr_data['Sex'] == 'female')</code> возвращает <code>Series</code> из <code>True</code>/<code>False</code>, а <code>bool</code> приводится к числам по правилу True = 1, False = 0. Значит, достаточно привести столбец к типу <code>int</code>: женщина = 1, мужчина = 0.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>corr_data = titanic_passengers[['Sex', 'Age', 'Survived']]
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>corr_data = titanic_passengers[['Sex', 'Age', 'Survived']]
 corr_data['Sex'] = (corr_data['Sex'] == 'female').astype(int)
 corr_data.head()
-corr_data.corr()</code></pre></div>
-<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><pre><code>            Sex       Age  Survived
+corr_data.corr()</code></pre></div></div>
+<div class="code"><div class="code-head"><span>вывод</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>текст</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>            Sex       Age  Survived
 Sex       1.000000 -0.093254  0.543351
 Age      -0.093254  1.000000 -0.077221
-Survived  0.543351 -0.077221  1.000000</code></pre></div>
+Survived  0.543351 -0.077221  1.000000</code></pre></div></div>
 <div class="note"><span class="lbl">Важное дополнение</span><br>При присваивании <code>corr_data['Sex'] = ...</code> в ноутбуке появилось предупреждение <code>SettingWithCopyWarning</code> («A value is trying to be set on a copy of a slice from a DataFrame»); лектор на нём не останавливался. Оно возникает потому, что <code>corr_data</code> — срез исходной таблицы, и pandas не уверен, копия это или представление. Чтобы его избежать, создают явную копию: <code>corr_data = titanic_passengers[['Sex', 'Age', 'Survived']].copy()</code>. Результат при этом тот же.</div>
 <p><strong>Чтение результата.</strong> Корреляция пола и выживания равна 0.54: довольно большая и <em>положительная</em>. С учётом кодировки (мужчина — 0, женщина — 1; не выжил — 0, выжил — 1) это согласуется с наблюдением, что женщин выжило больше, чем мужчин. Корреляция с возрастом небольшая и отрицательная: значение на экране −0.077 (лектор называет её «около 0.09»; на экране с выживанием −0.077, а −0.093 — это корреляция пола и возраста). Знак минус означает, что более молодые пассажиры выживали чуть чаще.</p>
 <div class="note"><span class="lbl">Исправление</span><br>Не следует делать из небольших значений корреляции вывод о причинности. Кроме того, <code>corr()</code> считает корреляцию Пирсона по парам, пропуская <code>NaN</code> (в <code>Age</code> их 177), так что для возраста используются только 714 пассажиров.</div>
 
 <h3 id="s7-3">Визуализация: seaborn.heatmap <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=2672" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">44:32</a></h3>
 <p>Бонус: большие матрицы корреляций неудобно сравнивать глазами. Для красивой визуализации служит библиотека <strong>seaborn</strong> (стандартное сокращение <code>sns</code>), у которой много инструментов для графиков. Функция <code>heatmap</code> принимает таблицу и раскрашивает её ячейки в разные цвета в зависимости от числа. Аргументы: <code>annot=True</code> — подписать числа; <code>cmap</code> — цветовая схема (здесь <code>'coolwarm'</code>); <code>vmin</code> и <code>vmax</code> — пределы значений (корреляция меняется от −1 до 1, поэтому пределы такие); <code>annot_kws={"size": 16}</code> — размер подписей.</p>
-<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><pre><code>import seaborn as sns
-sns.heatmap(corr_data.corr(), annot=True, cmap='coolwarm',
-            vmin=-1, vmax=1, annot_kws={"size": 16})</code></pre></div>
+<div class="code"><div class="code-head"><span>python</span><button type="button" class="copy">копировать</button></div><div class="code"><div class="code-head"><span>C++</span><button class="copy" type="button">копировать</button></div><pre class="hl"><code>import seaborn as sns
+sns.<span class="f">heatmap</span>(corr_data.<span class="f">corr</span>(), annot=True, cmap='coolwarm',
+            vmin=-<span class="n">1</span>, vmax=<span class="n">1</span>, annot_kws={<span class="s">"size"</span>: <span class="n">16</span>})</code></pre></div></div>
 <p>На картинке сразу видно: серо-голубые клетки — небольшая отрицательная корреляция, оранжевая — достаточно большая положительная (между полом и выживанием, 0.54), диагональ — единицы. Когда столбцов несколько десятков, такая визуализация наглядней, чем текст.</p>
 
 <h2 id="s8">8. Итоги <a class="ts" href="https://youtu.be/J6iHTHHS7as?t=2802" target="_blank" rel="noopener" title="Смотреть лекцию с этого момента">46:42</a></h2>
