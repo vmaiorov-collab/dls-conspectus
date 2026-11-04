@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конспекты курса Deep Learning School</title>
+<meta name="description" content="Подробные автономные конспекты курса Deep Learning School (ФПМИ МФТИ): математика, основы ML, нейросети, компьютерное зрение, генеративные модели. Читаются офлайн в браузере.">
+<meta name="theme-color" content="#fc3f1d">
+<link rel="icon" type="image/png" href="favicon-v2.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Конспекты Deep Learning School">
+<meta property="og:title" content="Конспекты курса Deep Learning School">
+<meta property="og:description" content="Подробные автономные конспекты курса Deep Learning School (ФПМИ МФТИ): математика, основы ML, нейросети, компьютерное зрение, генеративные модели. Читаются офлайн в браузере.">
+<meta property="og:url" content="https://vmaiorov-collab.github.io/dls-conspectus/">
+<meta property="og:locale" content="ru_RU">
+<script>(function(){try{var t=localStorage.getItem("conspectusTheme");document.documentElement.setAttribute("data-theme",t||"light")}catch(e){document.documentElement.setAttribute("data-theme","light")}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css?v=4">
+<style>
+.group{margin-top:44px}.group>h2.big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.group .gcount{font-family:var(--body,inherit);font-size:.95rem;font-weight:500;color:var(--muted)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}
+.vgrid .lcard{padding:22px 24px 24px;gap:12px;border-radius:26px}
+.vgrid .lcard h3{font-size:1.25rem}
+.lcard.soon{opacity:.55;cursor:default}.lcard.soon:hover{background:var(--card)}
+.pills .st{background:var(--yellow);color:#000}.lcard.soon .pills .st{background:var(--inner);color:var(--muted)}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.pillrow a{padding:8px 16px;border-radius:999px;background:var(--inner);font-size:.9rem;font-weight:500}.pillrow a:hover{background:var(--yellow);color:#000}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="nav"><div style="display:flex;align-items:center;gap:4px"><a class="brand" href="index.html">конспекты<i>.</i></a><nav class="links"><a href="#pick">Видео</a><a href="https://www.youtube.com/playlist?list=PL0Ks75aof3Tiru-UvOvYmXzD1tU0NrR8V" target="_blank" rel="noopener">Плейлист</a></nav></div><div class="navr"><button type="button" id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">тёмная тема</button></div></header>
+
+<section class="hero2">
+  <div class="hl">
+    <div class="hmain">
+      <span class="chip">Deep Learning School · ФПМИ МФТИ</span>
+      <h1>Конспекты <span class="hi">курса</span></h1>
+      <p>Курс Deep Learning School: линейная алгебра и анализ, классическое машинное обучение, нейронные сети, компьютерное зрение, генеративные модели. Здесь — подробные конспекты видео с формулами, кодом и таймкодами.</p>
+      <div class="cta"><a class="btn1" href="#pick">К списку видео</a><a class="btn2" href="https://www.youtube.com/playlist?list=PL0Ks75aof3Tiru-UvOvYmXzD1tU0NrR8V" target="_blank" rel="noopener">Плейлист на YouTube ↗</a></div>
+      <div class="sbox"><div class="search"><input id="q" type="search" placeholder="Поиск по темам: вектор, градиент, свёртка…" autocomplete="off" aria-label="Поиск по конспектам"></div></div>
+    </div>
+    <div class="hstats"><div><b id="cnt-done">0</b><span id="cnt-text">готово из 62</span></div><div><b id="cnt-groups">9</b><span>тематических блоков</span></div><div><b>1</b><span>файл на конспект — читается офлайн</span></div></div>
+  </div>
+</section>
+
+<div id="res" class="res" hidden></div>
+<div class="nores" id="nores" hidden>Ничего не найдено.</div>
+
+<div id="pick"><div id="groups"></div></div>
+<noscript><p>Для списка видео нужен JavaScript. Плейлист: <a href="https://www.youtube.com/playlist?list=PL0Ks75aof3Tiru-UvOvYmXzD1tU0NrR8V">YouTube</a>.</p></noscript>
+
+<footer class="foot"><a href="https://www.youtube.com/playlist?list=PL0Ks75aof3Tiru-UvOvYmXzD1tU0NrR8V" target="_blank" rel="noopener">плейлист курса на YouTube</a><a href="https://github.com/vmaiorov-collab/dls-conspectus" target="_blank" rel="noopener">исходники на GitHub</a></footer>
+
+</div>
+<script>
+const DATA = [
+  { name: "Математика и инструменты", badge: "∑", lessons: [
+    { n: "01", title: "Линейная алгебра для Data Science. Часть 1: векторы", id: "fyu2KiC2gwY", dur: "34 мин" },
+    { n: "02", title: "Линейная алгебра для Data Science. Часть 2: матрицы", id: "uIx5Cegf6Bk", dur: "25 мин" },
+    { n: "03", title: "Линейная алгебра для Data Science. Часть 3: операции над матрицами", id: "O6Z7BaJUoaA", dur: "32 мин" },
+    { n: "04", title: "Линейная алгебра для Data Science. Часть 4: линейные операторы", id: "nJMD5z0RaWQ", dur: "31 мин" },
+    { n: "05", title: "Семинар. Библиотека NumPy", id: "D6qFFVmsRos", dur: "1 ч 25 мин" },
+    { n: "06", title: "Семинар. Библиотека Pandas", id: "J6iHTHHS7as", dur: "47 мин" },
+    { n: "07", title: "Лекция. Понятие производной", id: "9zKXtRMunTA", dur: "22 мин" },
+    { n: "08", title: "Лекция. Вычисление производной. Градиент", id: "XwVd2Xi5GjQ", dur: "25 мин" },
+    { n: "09", title: "Лекция. Градиентная оптимизация", id: "WcDAj8bJAu8", dur: "27 мин" }
+  ]},
+  { name: "Введение в курс", badge: "▶", lessons: [
+    { n: "10", title: "Введение в ИИ и нейронные сети (лекция от 20.09.19)", id: "4JpVc-hwPlQ", dur: "1 ч 48 мин" },
+    { n: "11", title: "Вводный вебинар к началу курса Deep Learning", id: "gIvHC98Nc6s", dur: "1 ч 56 мин" }
+  ]},
+  { name: "Основы машинного обучения", badge: "ML", lessons: [
+    { n: "12", title: "Лекция 1. Введение в машинное обучение", id: "LcvKd42DGQU", dur: "1 ч 11 мин" },
+    { n: "13", title: "Семинар 1. Введение в машинное обучение", id: "YMtsgx8oB24", dur: "1 ч 13 мин" },
+    { n: "14", title: "Лекция 2.1. Линейная регрессия", id: "khdaLtu9i-s", dur: "19 мин" },
+    { n: "15", title: "Лекция 2.2. LogLoss", id: "HV4Bm8UJwIs", dur: "9 мин" },
+    { n: "16", title: "Лекция. Логистическая регрессия", id: "twdZBko9vH4", dur: "12 мин" },
+    { n: "17", title: "Лекция. Градиентный спуск в линейных алгоритмах", id: "N5_VAN1nhm8", dur: "12 мин" },
+    { n: "18", title: "Лекция. Регуляризация в линейной регрессии", id: "L_o8v5A23XA", dur: "5 мин" },
+    { n: "19", title: "Лекция 2.6. Нормализация", id: "tOiwAyilk3I", dur: "4 мин" },
+    { n: "20", title: "Семинар. Линейная и логистическая регрессия", id: "5VOp5xmBvds", dur: "39 мин" },
+    { n: "21", title: "Семинар. Регуляризация в линейной регрессии", id: "56YdhX0xj3k", dur: "40 мин" },
+    { n: "22", title: "Метрики качества в машинном обучении", id: "TaTGunOAIK4", dur: "10 мин" },
+    { n: "23", title: "Лекция. Решающие деревья", id: "MJwAoWFTMWw", dur: "31 мин" },
+    { n: "24", title: "Лекция. Ансамбли моделей", id: "vqF8wrWjR5s", dur: "22 мин" },
+    { n: "25", title: "Лекция. Градиентный бустинг", id: "JElfEE1OrSU", dur: "31 мин" },
+    { n: "26", title: "Семинар. Выбор модели", id: "B03CrtpYDi4", dur: "1 ч 11 мин" }
+  ]},
+  { name: "Нейронные сети", badge: "NN", lessons: [
+    { n: "27", title: "Введение в нейронные сети. Часть 1: история развития Deep Learning", id: "ZfXpX8tMg-w", dur: "23 мин" },
+    { n: "28", title: "Введение в нейронные сети. Часть 2: механизм обратного распространения ошибки", id: "-yiq1DRX9K0", dur: "26 мин" },
+    { n: "29", title: "Лекция. Полносвязные нейронные сети", id: "O0nGKKFyYT4", dur: "40 мин" },
+    { n: "30", title: "Введение в нейронные сети. Часть 3: функции активации, краткий обзор CNN и RNN", id: "3F7rydcAa0w", dur: "21 мин" },
+    { n: "31", title: "Семинар. Введение в PyTorch", id: "DU3-mc8qFxA", dur: "51 мин" },
+    { n: "32", title: "Семинар. Нейронная сеть в PyTorch", id: "1aOp0pOvczg", dur: "22 мин" }
+  ]},
+  { name: "Свёрточные сети", badge: "CNN", lessons: [
+    { n: "33", title: "Лекция. История свёрточных нейронных сетей", id: "Xq76hQHCkvQ", dur: "12 мин" },
+    { n: "34", title: "Лекция. Свёрточные нейронные сети", id: "HpKGv-kYurk", dur: "50 мин" },
+    { n: "35", title: "Лекция. Пулинг", id: "IxLuPHtZBTY", dur: "17 мин" },
+    { n: "36", title: "Лекция. Задачи компьютерного зрения", id: "3IPRcBIsgNA", dur: "18 мин" },
+    { n: "37", title: "Семинар. Модули в PyTorch", id: "0R65rYFZe6U", dur: "11 мин" },
+    { n: "38", title: "Семинар. Свёртка и пулинг", id: "6TMeFrRCJ_0", dur: "10 мин" },
+    { n: "39", title: "Семинар. Свёрточные сети", id: "xgVr9vISm8w", dur: "21 мин" }
+  ]},
+  { name: "Обучение глубоких сетей", badge: "⚙", lessons: [
+    { n: "40", title: "Лекция. Градиентная оптимизация в Deep Learning", id: "6CvpMOO-DB4", dur: "36 мин" },
+    { n: "41", title: "Лекция. Регуляризация в Deep Learning", id: "x72-oUjv1ew", dur: "33 мин" },
+    { n: "42", title: "Семинар. PyTorch: Batch Normalization и Dropout", id: "Y9a5EfqM7RM", dur: "35 мин" },
+    { n: "43", title: "Семинар. PyTorch: оптимизаторы", id: "Yh1VoUhS5MY", dur: "7 мин" }
+  ]},
+  { name: "Компьютерное зрение", badge: "CV", lessons: [
+    { n: "44", title: "Лекция. Архитектуры CNN", id: "TcUPuKpIlhQ", dur: "49 мин" },
+    { n: "45", title: "Лекция. Transfer Learning", id: "oLpREso27Zw", dur: "40 мин" },
+    { n: "46", title: "Семинар. Transfer Learning в компьютерном зрении", id: "4AUxDH4doV0", dur: "1 ч 01 мин" },
+    { n: "47", title: "Семантическая сегментация: введение", id: "tIqndofykgc", dur: "19 мин" },
+    { n: "48", title: "Семантическая сегментация. Приёмы: деконволюция, дилатированная свёртка", id: "K73tZxH9nvE", dur: "31 мин" },
+    { n: "49", title: "Семантическая сегментация. Архитектура UNet", id: "yEuIV5FsRMs", dur: "17 мин" },
+    { n: "50", title: "Лекция. Нейронная детекция объектов: повторение классификации", id: "8D01Xo9hWgg", dur: "25 мин" },
+    { n: "51", title: "Лекция. Нейронная детекция объектов: основы", id: "Y4JvVOaZWsU", dur: "25 мин" },
+    { n: "52", title: "Лекция. Нейронная детекция объектов: двухстадийные сети", id: "WrKl7GHWilA", dur: "25 мин" },
+    { n: "53", title: "Лекция. Нейронная детекция объектов: одностадийные сети", id: "OPK63uqAQLs", dur: "53 мин" },
+    { n: "54", title: "Лекция. Нейронная детекция объектов: современные подходы и задачи", id: "6WXUNNYysww", dur: "29 мин" },
+    { n: "55", title: "Практика. Детекция объектов: запуск SSD, TorchHub", id: "JX6N74K84n0", dur: "43 мин" },
+    { n: "56", title: "Практика. Детекция объектов: обучение SSD, mmdetection", id: "gw_IXcbhOO0", dur: "40 мин" }
+  ]},
+  { name: "Генеративные модели", badge: "GAN", lessons: [
+    { n: "57", title: "Лекция. Генеративные модели, автоэнкодеры", id: "6qVfC7P9dEc", dur: "38 мин" },
+    { n: "58", title: "Семинар. Автоэнкодеры", id: "FUXsks9SPOQ", dur: "18 мин" },
+    { n: "59", title: "Семинар. VAE", id: "mqPw5Lm810o", dur: "15 мин" },
+    { n: "60", title: "Лекция. Генеративные модели: генеративно-состязательные сети (GAN)", id: "An20DOEOctc", dur: "49 мин" },
+    { n: "61", title: "Практикум. Генеративные модели: GAN", id: "Anocy4ey0vs", dur: "13 мин" }
+  ]},
+  { name: "Дополнительно", badge: "+", lessons: [
+    { n: "62", title: "Семинар. Введение в PyTorch (расширенная версия)", id: "EfgFeqc0H6M", dur: "1 ч 09 мин" }
+  ]}
+];
+
+/*SECTIONS*/const SECTIONS = {};/*/SECTIONS*/
+
+const pick = document.getElementById("pick"), res = document.getElementById("res"), q = document.getElementById("q"), nores = document.getElementById("nores");
+const esc = (x) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const TOTAL = DATA.reduce((s, g) => s + g.lessons.length, 0);
+const DONE = DATA.reduce((s, g) => s + g.lessons.filter((l) => l.href).length, 0);
+document.getElementById("cnt-done").textContent = DONE;
+document.getElementById("cnt-text").textContent = "готово из " + TOTAL;
+document.getElementById("cnt-groups").textContent = DATA.length;
+document.getElementById("groups").innerHTML = DATA.map((g) => {
+  const done = g.lessons.filter((l) => l.href).length;
+  const cards = g.lessons.map((l) => {
+    const pills = `<div class="pills"><b>${l.n}</b><span>${l.dur}</span>${l.href ? "" : '<span class="st">скоро</span>'}</div>`;
+    return l.href ? `<a class="lcard" href="${l.href}">${pills}<h3>${esc(l.title)}</h3></a>`
+                  : `<div class="lcard soon" aria-disabled="true">${pills}<h3>${esc(l.title)}</h3></div>`;
+  }).join("");
+  return `<section class="group"><h2 class="big">${esc(g.name)} <span class="gcount">готово ${done} из ${g.lessons.length}</span></h2><div class="vgrid">${cards}</div></section>`;
+}).join("");
+
+function mark(text, t) {
+  const i = text.toLowerCase().indexOf(t);
+  return i < 0 ? esc(text) : esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, i + t.length)) + "</mark>" + esc(text.slice(i + t.length));
+}
+let katexState = 0;
+function loadKatex() {
+  if (katexState !== 0) return;
+  katexState = 1;
+  const css = document.createElement("link");
+  css.rel = "stylesheet"; css.href = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
+  document.head.appendChild(css);
+  const js = document.createElement("script");
+  js.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
+  js.onload = () => { katexState = 2; q.dispatchEvent(new Event("input")); };
+  js.onerror = () => { katexState = -1; };
+  document.head.appendChild(js);
+}
+const texPlain = (m) => m.replace(/\\(sqrt)\s*/g, "√").replace(/\\(le|leq)\b/g, "≤").replace(/\\(ge|geq)\b/g, "≥")
+  .replace(/\\cdot/g, "·").replace(/\\(?:text|mathrm|operatorname)\{([^}]*)\}/g, "$1").replace(/\\([a-zA-Z]+)/g, "$1").replace(/[{}]/g, "");
+function renderTitle(title, t) {
+  if (title.indexOf("$") < 0) return mark(title, t);
+  loadKatex();
+  let marked = false;
+  return title.split(/(\$[^$]+\$)/).map((part) => {
+    if (part.length > 2 && part[0] === "$" && part[part.length - 1] === "$") {
+      const m = part.slice(1, -1);
+      if (katexState === 2) { try { return katex.renderToString(m, { throwOnError: false }); } catch (e) {} }
+      return esc(texPlain(m));
+    }
+    if (!marked && part.toLowerCase().includes(t)) { marked = true; return mark(part, t); }
+    return esc(part);
+  }).join("");
+}
+q.addEventListener("input", () => {
+  const t = q.value.trim().toLowerCase();
+  pick.hidden = !!t;
+  res.hidden = !t;
+  if (!t) { res.innerHTML = ""; nores.hidden = true; return; }
+  let out = "", n = 0;
+  DATA.forEach((p) => p.lessons.forEach((l) => {
+    const found = t.length < 2 || !l.href ? [] : (SECTIONS[l.href] || []).filter(([, title, kw]) => title.toLowerCase().includes(t) || (kw || "").includes(t));
+    if (!(p.name.toLowerCase().includes(t) || l.title.toLowerCase().includes(t) || found.length)) return;
+    n++;
+    const seen = new Set();
+    const hits = found.filter(([id, title]) => !seen.has(title) && seen.add(title)).slice(0, 6)
+      .map(([id, title]) => `<a href="${l.href}#${id}">${renderTitle(title, t)}</a>`).join("");
+    const rt = l.href ? `<a class="rt" href="${l.href}">${esc(l.title)}</a>` : `<span class="rt" style="opacity:.55">${esc(l.title)} · скоро</span>`;
+    out += `<div class="rl"><div class="rp">${esc(p.name)} · ${l.n}</div>${rt}${hits ? `<div class="rh">${hits}</div>` : ""}</div>`;
+  }));
+  res.innerHTML = out;
+  nores.hidden = n > 0;
+});
+
+(function(){var root=document.documentElement,btn=document.getElementById("theme-toggle");
+function label(){btn.textContent=root.getAttribute("data-theme")==="dark"?"светлая тема":"тёмная тема"}label();
+btn.addEventListener("click",function(){var next=root.getAttribute("data-theme")==="dark"?"light":"dark";root.setAttribute("data-theme",next);label();try{localStorage.setItem("conspectusTheme",next)}catch(e){}});})();
+</script>
+</body>
+</html>

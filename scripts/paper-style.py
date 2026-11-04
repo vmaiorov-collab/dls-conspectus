@@ -1,0 +1,920 @@
+#!/usr/bin/env python3
+"""Приводит конспекты к оформлению главной страницы («бумажный» стиль).
+
+Добавляет в конец <head> блок <style id="paper"> и переносит переключатель темы
+в верхнюю строку рядом со ссылкой «← Все конспекты». Скрипт идемпотентен:
+повторный запуск заменяет блок стилей на актуальный.
+
+    python3 scripts/paper-style.py            # все конспекты
+    python3 scripts/paper-style.py file.html  # отдельные файлы
+"""
+import html
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SEARCH = {}
+
+CSS = r"""
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+html[data-theme]{
+  --bg:#f7f5f0; --card:#fffdf8; --ink:#1c1b19; --muted:#6f6a61; --faint:#a19b90;
+  --accent:#1f4fd1; --accent-soft:#eef0f6; --line:#e3ded3;
+  --tag:#ece7dc; --tag-ink:#3a362f; --warn:#faf1e1; --warn-ink:#94560c; --green:#ebf3ea; --green-ink:#2a6038;
+  --code-bg:#1d1c1a; --code-ink:#ebe7df;
+  --shadow-sm:none; --shadow-md:none; --shadow-lg:none;
+  --serif:"PT Serif",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","PT Mono",Menlo,Consolas,monospace;
+  scroll-behavior:smooth;
+}
+html[data-theme="dark"]{
+  --bg:#141413; --card:#1b1b19; --ink:#e9e6df; --muted:#a29d93; --faint:#6f6b64;
+  --accent:#8fb0ff; --accent-soft:#1c1f27; --line:#2e2d2a;
+  --tag:#26251f; --tag-ink:#d9d4c9; --warn:#272116; --warn-ink:#e3b46a; --green:#17221a; --green-ink:#93cfa2;
+  --code-bg:#0e0e0d; --code-ink:#ebe7df;
+  color-scheme:dark;
+}
+html[data-theme] body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased}
+html[data-theme] .wrap{max-width:820px; padding:28px 24px 80px}
+
+/* верхняя строка */
+html[data-theme] .top{display:flex; justify-content:space-between; align-items:center; gap:12px; font-family:var(--mono); font-size:.8rem}
+html[data-theme] .back{display:inline; margin:0; padding:0; border:0; background:none; color:var(--muted); font:inherit}
+html[data-theme] .back:hover{color:var(--ink); text-decoration:none}
+html[data-theme] .theme-toggle{position:static; width:auto; height:auto; font:inherit; font-size:.8rem; color:var(--muted); background:none; border:1px solid var(--line); border-radius:6px; padding:4px 10px; box-shadow:none; cursor:pointer; transform:none}
+html[data-theme] .theme-toggle:hover{color:var(--ink); border-color:var(--muted); transform:none}
+
+/* шапка */
+html[data-theme] header.hero{background:none; color:var(--ink); border-radius:0; box-shadow:none; padding:52px 0 26px; margin:0 0 8px; border-bottom:1px solid var(--line); overflow:visible}
+html[data-theme] header.hero::after{display:none}
+html[data-theme] header.hero h1{font-family:var(--serif); font-weight:700; font-size:clamp(1.9rem,5vw,2.6rem); line-height:1.12; letter-spacing:-.01em; margin:0 0 14px}
+html[data-theme] header.hero .sub{font-family:var(--serif); font-size:1.12rem; line-height:1.55; opacity:1; max-width:38em}
+html[data-theme] header.hero .meta{gap:0; margin-top:16px}
+html[data-theme] .chip{background:none; backdrop-filter:none; border:0; border-radius:0; padding:0; font-family:var(--mono); font-size:.78rem; color:var(--muted)}
+html[data-theme] .chip + .chip::before{content:"·"; margin:0 .7em; color:var(--faint)}
+
+/* оглавление */
+html[data-theme] .toc{background:none; border:0; border-radius:0; box-shadow:none; padding:20px 0 24px; margin:0 0 12px; border-bottom:1px solid var(--line)}
+html[data-theme] .toc h2{font-family:var(--mono); font-size:.78rem; font-weight:500; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; margin:0 0 6px; padding:0; border:0}
+html[data-theme] .toc ol{columns:2 280px; column-gap:32px; padding-left:1.5em; margin:0}
+html[data-theme] .toc li{font-family:var(--serif); break-inside:avoid; margin:0 0 .4em; color:var(--muted)}
+html[data-theme] .toc a{color:var(--ink)}
+html[data-theme] .toc a:hover{color:var(--accent); text-decoration:underline; text-underline-offset:3px}
+
+/* текст */
+html[data-theme] h2{font-family:var(--serif); font-size:1.7rem; font-weight:700; line-height:1.25; letter-spacing:-.005em; margin:2.4em 0 .6em; padding:0; border:0; scroll-margin-top:20px}
+html[data-theme] h3{font-family:var(--serif); font-size:1.25rem; font-weight:700; color:var(--ink); margin:1.8em 0 .5em; scroll-margin-top:20px}
+html[data-theme] .wrap > p, html[data-theme] .wrap > ul, html[data-theme] .wrap > ol, html[data-theme] .card p,
+html[data-theme] .card li{font-family:var(--serif); font-size:1.08rem; line-height:1.68}
+html[data-theme] .note, html[data-theme] .warn, html[data-theme] .good{font-family:var(--serif); font-size:1.04rem}
+html[data-theme] a{color:var(--accent)}
+html[data-theme] a:hover{text-decoration:underline; text-underline-offset:3px}
+html[data-theme] a.ts{display:inline-block; vertical-align:.2em; margin:0 0 0 .5em; padding:2px 7px; border-radius:4px; background:var(--tag); color:var(--tag-ink); font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:0; transition:background-color .15s, color .15s}
+html[data-theme] a.ts::before{content:"▶\00a0"; font-size:.85em}
+html[data-theme] a.ts:hover{background:var(--ink); color:var(--bg); text-decoration:none; filter:none; transform:none}
+html[data-theme] p > a.ts:first-child{margin:0 .4em 0 0; vertical-align:.1em}
+
+/* блоки */
+html[data-theme] .card{background:var(--card); border:1px solid var(--line); border-radius:6px; box-shadow:none; transform:none}
+html[data-theme] .card:hover{transform:none; box-shadow:none; border-color:var(--line)}
+html[data-theme] .note, html[data-theme] .warn, html[data-theme] .good{border-radius:0; border-left-width:2px; padding:12px 18px}
+html[data-theme] .note{border-left-color:var(--accent); background:var(--accent-soft)}
+html[data-theme] .warn{border-left-color:var(--warn-ink); background:var(--warn)}
+html[data-theme] .good{border-left-color:var(--green-ink); background:var(--green)}
+html[data-theme] .note .lbl, html[data-theme] .warn .lbl, html[data-theme] .good .lbl{font-family:var(--mono); font-size:.74rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase}
+html[data-theme] table{background:none; border-radius:0; box-shadow:none; font-size:.92rem}
+html[data-theme] th, html[data-theme] td{border:0; border-bottom:1px solid var(--line); padding:9px 12px}
+html[data-theme] th{background:none; color:var(--muted); font-weight:600; font-size:.82rem; border-bottom:1px solid var(--ink)}
+html[data-theme] tr:nth-child(even) td{background:none}
+html[data-theme] code{background:var(--tag); color:var(--ink); border-radius:3px; font-family:var(--mono)}
+html[data-theme] pre{background:var(--code-bg); color:var(--code-ink); border-radius:6px; box-shadow:none; font-family:var(--mono)}
+html[data-theme] pre code{background:none; color:inherit}
+html[data-theme] .formula, html[data-theme] .ascii{background:var(--card); border:1px solid var(--line); border-radius:6px}
+html[data-theme] .viz svg{border-radius:6px; box-shadow:none}
+html[data-theme] .viz figcaption, html[data-theme] .algocap{font-size:.85rem; color:var(--muted)}
+html[data-theme] .algo{border-radius:6px; box-shadow:none}
+html[data-theme] .timeline{border-left:1px solid var(--line)}
+html[data-theme] .timeline .step::before{width:9px; height:9px; left:-29px; top:8px; border:0; background:var(--ink)}
+
+html[data-theme] footer{font-size:.82rem; color:var(--muted); border-top:1px solid var(--line); margin-top:56px; padding-top:16px}
+html[data-theme] .toplink{background:var(--ink); color:var(--bg); border:0; border-radius:6px; box-shadow:none; padding:8px 14px; font-family:var(--sans); font-size:.82rem; cursor:pointer; transform:translateY(8px); transition:opacity .2s, transform .2s}
+html[data-theme] .toplink.show{transform:none}
+
+/* схемы: палитра 3B1B → цвета темы (CSS перекрывает атрибуты fill/stroke) */
+html[data-theme]{
+  --f-bg:var(--card); --f-node:#f1ece2; --f-node2:#ebe5d9; --f-node3:#dde7ef; --f-edge:#c9c1b2; --f-axis:#8f887c;
+  --f-text:var(--ink); --f-text2:#4a463e; --f-muted:var(--muted); --f-on:#1c1b19;
+  --f-blue:#1b7aa0; --f-blue-bg:#a8d4e6; --f-green:#3b8530; --f-green-bg:#bfdfae;
+  --f-orange:#c0610a; --f-orange-bg:#f1bf88; --f-yellow:#a07f00; --f-yellow-bg:#ecd568;
+  --f-red:#bf3a2b; --f-red-bg:#ecb0a6; --f-purple:#7a4cc6; --f-purple-bg:#d0bdf0;
+}
+html[data-theme="dark"]{
+  --f-bg:var(--card); --f-node:#262521; --f-node2:#22211e; --f-node3:#23384d; --f-edge:#46433d; --f-axis:#8a857b;
+  --f-text:var(--ink); --f-text2:#cfcac0; --f-muted:var(--muted); --f-on:#141413;
+  --f-blue:#58c4dd; --f-blue-bg:#58c4dd; --f-green:#83c167; --f-green-bg:#83c167;
+  --f-orange:#ff8c1a; --f-orange-bg:#ff8c1a; --f-yellow:#f2e04a; --f-yellow-bg:#f2e04a;
+  --f-red:#fc6255; --f-red-bg:#fc6255; --f-purple:#c78bff; --f-purple-bg:#c78bff;
+}
+html[data-theme] svg :not(text)[fill="#141A24"]{fill:var(--f-bg)}
+html[data-theme] svg text[fill="#141A24"]{fill:var(--f-on)}
+html[data-theme] svg [stroke="#141A24"]{stroke:var(--f-bg)}
+html[data-theme] svg :not(text)[fill="#141a24"]{fill:var(--f-bg)}
+html[data-theme] svg text[fill="#141a24"]{fill:var(--f-on)}
+html[data-theme] svg [stroke="#141a24"]{stroke:var(--f-bg)}
+html[data-theme] svg :not(text)[fill="#1E2836"]{fill:var(--f-node)}
+html[data-theme] svg text[fill="#1E2836"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#1E2836"]{stroke:var(--f-node)}
+html[data-theme] svg :not(text)[fill="#1e2836"]{fill:var(--f-node)}
+html[data-theme] svg text[fill="#1e2836"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#1e2836"]{stroke:var(--f-node)}
+html[data-theme] svg :not(text)[fill="#151F30"]{fill:var(--f-node2)}
+html[data-theme] svg text[fill="#151F30"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#151F30"]{stroke:var(--f-node2)}
+html[data-theme] svg :not(text)[fill="#151f30"]{fill:var(--f-node2)}
+html[data-theme] svg text[fill="#151f30"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#151f30"]{stroke:var(--f-node2)}
+html[data-theme] svg :not(text)[fill="#24405C"]{fill:var(--f-node3)}
+html[data-theme] svg text[fill="#24405C"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#24405C"]{stroke:var(--f-node3)}
+html[data-theme] svg :not(text)[fill="#24405c"]{fill:var(--f-node3)}
+html[data-theme] svg text[fill="#24405c"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#24405c"]{stroke:var(--f-node3)}
+html[data-theme] svg :not(text)[fill="#DFE7F1"]{fill:var(--f-text)}
+html[data-theme] svg text[fill="#DFE7F1"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#DFE7F1"]{stroke:var(--f-text)}
+html[data-theme] svg :not(text)[fill="#dfe7f1"]{fill:var(--f-text)}
+html[data-theme] svg text[fill="#dfe7f1"]{fill:var(--f-text)}
+html[data-theme] svg [stroke="#dfe7f1"]{stroke:var(--f-text)}
+html[data-theme] svg :not(text)[fill="#C2CDDE"]{fill:var(--f-text2)}
+html[data-theme] svg text[fill="#C2CDDE"]{fill:var(--f-text2)}
+html[data-theme] svg [stroke="#C2CDDE"]{stroke:var(--f-text2)}
+html[data-theme] svg :not(text)[fill="#c2cdde"]{fill:var(--f-text2)}
+html[data-theme] svg text[fill="#c2cdde"]{fill:var(--f-text2)}
+html[data-theme] svg [stroke="#c2cdde"]{stroke:var(--f-text2)}
+html[data-theme] svg :not(text)[fill="#9AA4B2"]{fill:var(--f-muted)}
+html[data-theme] svg text[fill="#9AA4B2"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#9AA4B2"]{stroke:var(--f-axis)}
+html[data-theme] svg :not(text)[fill="#9aa4b2"]{fill:var(--f-muted)}
+html[data-theme] svg text[fill="#9aa4b2"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#9aa4b2"]{stroke:var(--f-axis)}
+html[data-theme] svg :not(text)[fill="#7C8AA0"]{fill:var(--f-axis)}
+html[data-theme] svg text[fill="#7C8AA0"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#7C8AA0"]{stroke:var(--f-axis)}
+html[data-theme] svg :not(text)[fill="#7c8aa0"]{fill:var(--f-axis)}
+html[data-theme] svg text[fill="#7c8aa0"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#7c8aa0"]{stroke:var(--f-axis)}
+html[data-theme] svg :not(text)[fill="#33415A"]{fill:var(--f-edge)}
+html[data-theme] svg text[fill="#33415A"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#33415A"]{stroke:var(--f-edge)}
+html[data-theme] svg :not(text)[fill="#33415a"]{fill:var(--f-edge)}
+html[data-theme] svg text[fill="#33415a"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#33415a"]{stroke:var(--f-edge)}
+html[data-theme] svg :not(text)[fill="#3B4A63"]{fill:var(--f-edge)}
+html[data-theme] svg text[fill="#3B4A63"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#3B4A63"]{stroke:var(--f-edge)}
+html[data-theme] svg :not(text)[fill="#3b4a63"]{fill:var(--f-edge)}
+html[data-theme] svg text[fill="#3b4a63"]{fill:var(--f-muted)}
+html[data-theme] svg [stroke="#3b4a63"]{stroke:var(--f-edge)}
+html[data-theme] svg :not(text)[fill="#58C4DD"]{fill:var(--f-blue-bg)}
+html[data-theme] svg text[fill="#58C4DD"]{fill:var(--f-blue)}
+html[data-theme] svg [stroke="#58C4DD"]{stroke:var(--f-blue)}
+html[data-theme] svg :not(text)[fill="#58c4dd"]{fill:var(--f-blue-bg)}
+html[data-theme] svg text[fill="#58c4dd"]{fill:var(--f-blue)}
+html[data-theme] svg [stroke="#58c4dd"]{stroke:var(--f-blue)}
+html[data-theme] svg :not(text)[fill="#83C167"]{fill:var(--f-green-bg)}
+html[data-theme] svg text[fill="#83C167"]{fill:var(--f-green)}
+html[data-theme] svg [stroke="#83C167"]{stroke:var(--f-green)}
+html[data-theme] svg :not(text)[fill="#83c167"]{fill:var(--f-green-bg)}
+html[data-theme] svg text[fill="#83c167"]{fill:var(--f-green)}
+html[data-theme] svg [stroke="#83c167"]{stroke:var(--f-green)}
+html[data-theme] svg :not(text)[fill="#FF8C1A"]{fill:var(--f-orange-bg)}
+html[data-theme] svg text[fill="#FF8C1A"]{fill:var(--f-orange)}
+html[data-theme] svg [stroke="#FF8C1A"]{stroke:var(--f-orange)}
+html[data-theme] svg :not(text)[fill="#ff8c1a"]{fill:var(--f-orange-bg)}
+html[data-theme] svg text[fill="#ff8c1a"]{fill:var(--f-orange)}
+html[data-theme] svg [stroke="#ff8c1a"]{stroke:var(--f-orange)}
+html[data-theme] svg :not(text)[fill="#FFFF00"]{fill:var(--f-yellow-bg)}
+html[data-theme] svg text[fill="#FFFF00"]{fill:var(--f-yellow)}
+html[data-theme] svg [stroke="#FFFF00"]{stroke:var(--f-yellow)}
+html[data-theme] svg :not(text)[fill="#ffff00"]{fill:var(--f-yellow-bg)}
+html[data-theme] svg text[fill="#ffff00"]{fill:var(--f-yellow)}
+html[data-theme] svg [stroke="#ffff00"]{stroke:var(--f-yellow)}
+html[data-theme] svg :not(text)[fill="#FC6255"]{fill:var(--f-red-bg)}
+html[data-theme] svg text[fill="#FC6255"]{fill:var(--f-red)}
+html[data-theme] svg [stroke="#FC6255"]{stroke:var(--f-red)}
+html[data-theme] svg :not(text)[fill="#fc6255"]{fill:var(--f-red-bg)}
+html[data-theme] svg text[fill="#fc6255"]{fill:var(--f-red)}
+html[data-theme] svg [stroke="#fc6255"]{stroke:var(--f-red)}
+html[data-theme] svg :not(text)[fill="#C78BFF"]{fill:var(--f-purple-bg)}
+html[data-theme] svg text[fill="#C78BFF"]{fill:var(--f-purple)}
+html[data-theme] svg [stroke="#C78BFF"]{stroke:var(--f-purple)}
+html[data-theme] svg :not(text)[fill="#c78bff"]{fill:var(--f-purple-bg)}
+html[data-theme] svg text[fill="#c78bff"]{fill:var(--f-purple)}
+html[data-theme] svg [stroke="#c78bff"]{stroke:var(--f-purple)}
+html[data-theme]{--f-blue-soft:var(--f-blue-bg); --f-green-soft:var(--f-green-bg); --f-red-soft:var(--f-red-bg); --f-yellow-soft:var(--f-yellow-bg); --f-orange-soft:var(--f-orange-bg); --f-purple-soft:var(--f-purple-bg);}
+html[data-theme="dark"]{--f-blue-soft:#1d4257; --f-green-soft:#27431f; --f-red-soft:#4f1f1b; --f-yellow-soft:#4d4d00; --f-orange-soft:#53300a; --f-purple-soft:#3a2858;}
+/* заливки ячеек: светлые в светлой теме, тёмные в тёмной */
+html[data-theme] svg :not(text)[fill="#1d4257"]{fill:var(--f-blue-soft)}
+html[data-theme] svg :not(text)[fill="#27431f"]{fill:var(--f-green-soft)}
+html[data-theme] svg :not(text)[fill="#4f1f1b"]{fill:var(--f-red-soft)}
+html[data-theme] svg :not(text)[fill="#4d4d00"]{fill:var(--f-yellow-soft)}
+html[data-theme] svg :not(text)[fill="#53300a"]{fill:var(--f-orange-soft)}
+html[data-theme] svg :not(text)[fill="#3a2858"]{fill:var(--f-purple-soft)}
+/* наконечники стрелок — насыщенным цветом */
+html[data-theme] svg marker [fill="#58c4dd"]{fill:var(--f-blue)}
+html[data-theme] svg marker [fill="#83c167"]{fill:var(--f-green)}
+html[data-theme] svg marker [fill="#ff8c1a"]{fill:var(--f-orange)}
+html[data-theme] svg marker [fill="#ffff00"]{fill:var(--f-yellow)}
+html[data-theme] svg marker [fill="#fc6255"]{fill:var(--f-red)}
+html[data-theme] svg marker [fill="#c78bff"]{fill:var(--f-purple)}
+html[data-theme] svg marker [fill="#3b4a63"]{fill:var(--f-axis)}
+html[data-theme] svg marker [fill="#33415a"]{fill:var(--f-axis)}
+html[data-theme] svg marker [fill="#7c8aa0"]{fill:var(--f-axis)}
+html[data-theme] svg marker [fill="#9aa4b2"]{fill:var(--f-muted)}
+html[data-theme] svg marker [fill="#dfe7f1"]{fill:var(--f-text)}
+html[data-theme] svg marker [fill="#c2cdde"]{fill:var(--f-text2)}
+html[data-theme] svg text{font-family:var(--sans)}
+html[data-theme] .viz{margin:26px 0}
+html[data-theme] .viz svg{border:1px solid var(--line); border-radius:6px; box-shadow:none; background:var(--card)}
+html[data-theme] .viz figcaption{font-family:var(--serif); font-size:.95rem; color:var(--muted); text-align:left; margin-top:10px}
+
+/* пошаговые плееры */
+html[data-theme] .algo{background:var(--card); border:1px solid var(--line); border-radius:6px; box-shadow:none}
+html[data-theme] .algo .bar{background:var(--f-edge)}
+html[data-theme] .algo .bar .v{color:var(--f-muted)}
+html[data-theme] .algo .bar.cmp{background:var(--f-yellow-bg)} html[data-theme] .algo .bar.cmp .v{color:var(--f-yellow)}
+html[data-theme] .algo .bar.swap{background:var(--f-red-bg)} html[data-theme] .algo .bar.swap .v{color:var(--f-red)}
+html[data-theme] .algo .bar.done{background:var(--f-green-bg)} html[data-theme] .algo .bar.done .v{color:var(--f-green)}
+html[data-theme] .algo .ctl input[type=range]{accent-color:var(--ink)}
+html[data-theme] .algo .ctl button{background:none; color:var(--ink); border:1px solid var(--line); border-radius:6px}
+html[data-theme] .algo .ctl button:hover{background:var(--hover,var(--tag))}
+html[data-theme] .algo .lbl, html[data-theme] .algo .bslbl{color:var(--muted)}
+html[data-theme] .algo .bscell{background:var(--f-node); border-color:var(--f-edge); color:var(--ink)}
+html[data-theme] .algo .bscell.L, html[data-theme] .algo .bscell.found{background:var(--f-green-bg); color:var(--f-on)}
+html[data-theme] .algo .bscell.R{background:var(--f-orange-bg); color:var(--f-on)}
+html[data-theme] .algo .bscell.mid{background:var(--f-yellow-bg); color:var(--f-on)}
+html[data-theme] .algo .bscell.found{box-shadow:0 0 0 3px color-mix(in srgb,var(--f-green) 40%,transparent)}
+
+/* блоки кода */
+html[data-theme]{
+  --code-paper:#f4f0e7; --code-head:#ebe5d8; --code-line:#e0d9ca; --code-text:#2b2925;
+  --hl-c:#8d877b; --hl-k:#1f4fd1; --hl-t:#7a3fb8; --hl-s:#2e7d32; --hl-n:#b4540a; --hl-f:#8a5a00; --hl-p:#b8372a;
+}
+html[data-theme="dark"]{
+  --code-paper:#1c1b19; --code-head:#232220; --code-line:#2e2d2a; --code-text:#e6e2d9;
+  --hl-c:#7f7a70; --hl-k:#8fb0ff; --hl-t:#c9a6ff; --hl-s:#a5d68f; --hl-n:#f2a96a; --hl-f:#e9d18e; --hl-p:#f08c7c;
+}
+html[data-theme] .code{margin:18px 0; border:1px solid var(--code-line); border-radius:8px; background:var(--code-paper); overflow:hidden}
+html[data-theme] .code-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 8px 6px 14px; background:var(--code-head); border-bottom:1px solid var(--code-line); font-family:var(--mono); font-size:.72rem; color:var(--muted); letter-spacing:.03em}
+html[data-theme] .code-head .copy{font:inherit; color:var(--muted); background:none; border:1px solid transparent; border-radius:5px; padding:3px 9px; cursor:pointer; transition:color .15s, border-color .15s, background-color .15s}
+html[data-theme] .code-head .copy:hover{color:var(--ink); border-color:var(--code-line); background:var(--code-paper)}
+html[data-theme] .code pre{margin:0; border:0; border-radius:0; background:none; color:var(--code-text); padding:14px 16px; font-size:.84rem; line-height:1.6; tab-size:4; overflow-x:auto}
+html[data-theme] .code pre code{font-family:var(--mono); background:none; color:inherit; padding:0}
+html[data-theme] .hl .c{color:var(--hl-c); font-style:italic}
+html[data-theme] .hl .k{color:var(--hl-k); font-weight:600}
+html[data-theme] .hl .t{color:var(--hl-t)}
+html[data-theme] .hl .s{color:var(--hl-s)}
+html[data-theme] .hl .n{color:var(--hl-n)}
+html[data-theme] .hl .f{color:var(--hl-f)}
+html[data-theme] .hl .p{color:var(--hl-p)}
+@media print{html[data-theme] .code-head .copy{display:none}}
+
+/* плавная смена темы */
+html.theme-anim, html.theme-anim *, html.theme-anim *::before{transition:background-color .3s ease, color .3s ease, border-color .3s ease !important}
+
+@media(max-width:680px){
+  html[data-theme] .viz{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-left:-18px; margin-right:-18px; padding:0 18px}
+  html[data-theme] .viz svg{min-width:600px}
+  html[data-theme] .viz figcaption{position:sticky; left:0; max-width:calc(100vw - 36px)}
+  html[data-theme] .wrap{padding:20px 18px 64px}
+  html[data-theme] header.hero{padding:36px 0 22px}
+  html[data-theme] h2{font-size:1.45rem}
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-theme]{scroll-behavior:auto}
+  @view-transition{navigation:none}
+  html.theme-anim, html.theme-anim *{transition:none !important}
+}
+@media print{html[data-theme] .top, html[data-theme] .toplink{display:none} html[data-theme] body{background:#fff}}
+/* ---------- навигация по конспекту ---------- */
+html[data-theme] .progress{position:fixed; top:0; left:0; right:0; height:3px; background:var(--accent); transform-origin:0 50%; transform:scaleX(0); z-index:50; pointer-events:none}
+html[data-theme] .side-toc{position:fixed; top:84px; right:max(16px, calc(50% - 410px - 250px)); width:220px; max-height:calc(100vh - 120px); overflow:auto;
+  font-size:.85rem; line-height:1.35; opacity:0; visibility:hidden; transform:translateX(6px); transition:opacity .25s, transform .25s, visibility .25s; z-index:20}
+html[data-theme] .side-toc.show{opacity:1; visibility:visible; transform:none}
+html[data-theme] .side-toc p{font-family:var(--mono); font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin:0 0 8px}
+html[data-theme] .side-toc a{display:block; color:var(--muted); padding:4px 0 4px 12px; border-left:2px solid var(--line); text-decoration:none; transition:color .2s, border-color .2s}
+html[data-theme] .side-toc a:hover{color:var(--ink)}
+html[data-theme] .side-toc a.on{color:var(--ink); border-left-color:var(--accent)}
+html[data-theme] .secbtn{position:fixed; left:16px; bottom:16px; z-index:30; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:6px;
+  padding:8px 14px; font-family:var(--sans); font-size:.82rem; cursor:pointer; opacity:0; visibility:hidden; transform:translateY(8px); transition:opacity .2s, transform .2s, visibility .2s}
+html[data-theme] .secbtn.show{opacity:1; visibility:visible; transform:none}
+html[data-theme] .secpanel{position:fixed; left:16px; right:16px; bottom:64px; max-width:420px; max-height:60vh; overflow:auto; z-index:31; background:var(--card);
+  border:1px solid var(--line); border-radius:8px; padding:10px 0; box-shadow:0 12px 32px rgba(0,0,0,.18)}
+html[data-theme] .secpanel[hidden]{display:none}
+html[data-theme] .secpanel a{display:block; padding:8px 16px; color:var(--ink); text-decoration:none; font-size:.92rem}
+html[data-theme] .secpanel a.on{color:var(--accent); font-weight:650}
+html[data-theme] .pager{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:48px 0 0; padding-top:20px; border-top:1px solid var(--ink)}
+html[data-theme] .pager a{display:block; padding:14px 16px; border:1px solid var(--line); border-radius:8px; color:var(--ink); text-decoration:none; transition:border-color .2s, background-color .2s}
+html[data-theme] .pager a:hover{border-color:var(--accent); background:var(--accent-soft)}
+html[data-theme] .pager a.next{text-align:right; grid-column:2}
+html[data-theme] .pager small{display:block; font-family:var(--mono); font-size:.75rem; color:var(--muted); margin-bottom:4px}
+html[data-theme] .pager b{font-family:var(--serif); font-size:1.08rem}
+html[data-theme] h2[id], html[data-theme] h3[id]{scroll-margin-top:24px}
+html[data-theme] .secbtn, html[data-theme] .secpanel{display:none !important}
+@media(max-width:1299px){html[data-theme] .side-toc{display:none}}
+@media(max-width:560px){html[data-theme] .pager{grid-template-columns:1fr} html[data-theme] .pager a.next{grid-column:1}}
+@media print{html[data-theme] .progress, html[data-theme] .side-toc, html[data-theme] .secbtn, html[data-theme] .secpanel, html[data-theme] .pager{display:none}}
+"""
+
+# ═══════════════════════════════════════════════════════════════════════
+# Книжный вид — второй слой поверх paper, а не отдельная копия страниц.
+#
+# Включается атрибутом data-look="book" на <html>; кнопка «старый вид»
+# возвращает paper. Так обе версии живут в одном файле и не расходятся —
+# ровно тот же приём, которым сам paper накладывается на исходную вёрстку.
+#
+# Слой опирается на то, что paper полностью построен на переменных:
+# достаточно переопределить палитру (включая --f-* для SVG-схем), и цвета
+# подхватываются сами. Поэтому ниже — в основном структура, не краски.
+#
+# Замысел: страница лекции как страница учебника. Теоремы набраны
+# наборными средами (ярлык в подбор, втяжка), а не подкрашенными
+# плашками; таймкод уходит на поле; мера строки 66ch вместо 820px.
+# Акцент страницы = краска её параллели по лестнице Codeforces.
+# ═══════════════════════════════════════════════════════════════════════
+
+# Краска параллели: лестница Codeforces по возрастанию сложности.
+# Тона CF, но светлота подогнана под бумагу — чистые #FF0000/#0000FF
+# дают на белом контраст 4:1 и режут глаз. Минимум в паре — 5:1.
+ACCENTS = {
+    "parallel-c":  ("#0b7a31", "#4ec46f"),   # зелёный  — вводная
+    "parallel-bp": ("#0a7d75", "#3fc9bd"),   # циан     — C++, поиски
+    "parallel-b":  ("#1a35c7", "#7e94ff"),   # синий    — графы, строки
+    "parallel-ap": ("#96149b", "#de7ade"),   # фиолет.  — структуры
+    "parallel-a":  ("#c91d12", "#ff7a6b"),   # красный  — теория чисел
+}
+
+BOOK_CSS = r"""
+<style id="book">
+/* ── палитра книжного вида: холодный стол, белый лист ── */
+html[data-look="book"]{
+  --desk:#dde2e9; --sheet-grid:rgba(21,56,111,.06);
+  --bg:#ffffff; --card:#ffffff;
+  --ink:#11161b; --muted:#49525b; --faint:#6a737c;
+  --line:#e9edf1; --rule-hard:#d4dae1;
+  --accent:var(--acc-l); --accent-soft:transparent;
+  --tag:#e9edf1;
+  /* ── Листинг набран на бумаге, а не в чёрном ящике ──
+     Тёмная плашка с неоновыми пастельными цветами — язык тёмной IDE,
+     и в книжной вёрстке она выглядит чужеродной вставкой. В печатном
+     учебнике листинг идёт на той же бумаге: тёмной краской, различение
+     даётся начертанием, а красок — минимум.
+     Ключевые слова поэтому почти чёрные (у .hl .k уже есть
+     font-weight:600 — работает как полужирный в печатном листинге),
+     комментарий — серый курсив, и лишь четыре сдержанные краски
+     одной светлоты. Минимум в паре 4.75:1. */
+  --code-bg:#f3f5f9; --code-ink:#1b222a;
+  --code-paper:#f3f5f9; --code-head:transparent;
+  --code-line:#d8dfe8; --code-text:#1b222a;
+  --hl-c:#636e7c; --hl-k:#11161b; --hl-t:#1b4a8f; --hl-s:#1f6b45;
+  --hl-n:#8a4b1f; --hl-f:#3c4a59; --hl-p:#9c3322;
+  --shadow-sm:none; --shadow-md:none; --shadow-lg:none;
+  --sans:var(--serif);
+}
+html[data-look="book"][data-theme="dark"]{
+  --desk:#0e1011; --sheet-grid:rgba(156,192,240,.055);
+  --bg:#17191b; --card:#17191b;
+  --ink:#e8eae5; --muted:#a7aeb2; --faint:#7d858a;
+  --line:#232729; --rule-hard:#2e3335;
+  --accent:var(--acc-d);
+  --tag:#232729;
+  /* Палитра листинга обязана идти в комплекте с его подложкой: светлый
+     набор выше рассчитан на #f3f5f9, и почти чёрные ключевые слова
+     #11161b на тёмной подложке исчезли бы совсем. Здесь та же логика
+     набора — ключевые слова почти белым полужирным, комментарий серым
+     курсивом, четыре сдержанные краски. Минимум в паре 4.6:1. */
+  --code-bg:#1b1f24; --code-ink:#dde3ea;
+  --code-paper:#1b1f24; --code-line:#2a3038; --code-text:#dde3ea;
+  --hl-c:#7d8894; --hl-k:#f2f5f8; --hl-t:#9cc0f0; --hl-s:#8fd0a8;
+  --hl-n:#e0a86e; --hl-f:#b8c4d0; --hl-p:#e59080;
+}
+
+/* ── лист на клетчатом столе ── */
+/* Сетку рисует фиксированный слой размером в экран, а не тайловый фон
+   на весь body: страница конспекта — десятки тысяч пикселей высотой, и
+   растрировать по ней два градиента браузер вынужден заново при
+   прокрутке. Это и подлагивало. */
+html[data-look="book"]{background:var(--desk)}
+html[data-look="book"] body::before{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:
+    repeating-linear-gradient(to right, var(--sheet-grid) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(to bottom, var(--sheet-grid) 0 1px, transparent 1px 26px);
+}
+html[data-look="book"] body{
+  background:none;
+  font-family:var(--serif); font-size:18px; line-height:1.72;
+  padding:0 24px 72px;
+}
+html[data-look="book"] .wrap{
+  max-width:1060px; margin:0 auto; background:var(--bg);
+  /* только резкая волосяная кромка: размытую тень на элементе такой
+     высоты браузер перерисовывает заметно дороже */
+  box-shadow:0 0 0 1px rgba(17,22,27,.09);
+  /* 64px поле + 104px колонка маргиналий */
+  padding:0 64px 64px 168px;
+}
+html[data-look="book"][data-theme="dark"] .wrap{
+  box-shadow:0 0 0 1px rgba(255,255,255,.07);
+}
+/* мера строки: засечками 820px читать тяжело */
+html[data-look="book"] .wrap > p,
+html[data-look="book"] .wrap > ul,
+html[data-look="book"] .wrap > ol,
+html[data-look="book"] .wrap > h2,
+html[data-look="book"] .wrap > h3,
+html[data-look="book"] .wrap > .note,
+html[data-look="book"] .wrap > .good,
+html[data-look="book"] .wrap > .warn,
+html[data-look="book"] .wrap > .card,
+html[data-look="book"] header.hero{max-width:66ch}
+
+/* колонтитул и пагинация занимают всю ширину листа */
+html[data-look="book"] .top,
+html[data-look="book"] .pager{margin-left:-104px}
+html[data-look="book"] .top{
+  padding:22px 0 14px; border-bottom:1px solid var(--line);
+  font-family:var(--mono); font-size:.76rem; letter-spacing:.06em;
+}
+
+/* ── титул ── */
+html[data-look="book"] header.hero{
+  padding:44px 0 0; margin:0; border-bottom:0;
+}
+html[data-look="book"] header.hero h1{font-size:2.3rem; line-height:1.12; margin:0 0 18px}
+html[data-look="book"] header.hero .sub{font-size:1.02rem; color:var(--muted); max-width:62ch}
+html[data-look="book"] header.hero .meta{
+  margin-top:24px; padding-top:14px; border-top:2px solid var(--ink);
+  font-family:var(--mono); font-size:.82rem;
+}
+
+/* ── содержание: две колонки, настоящие номера ── */
+html[data-look="book"] nav.toc{margin:40px 0 0; max-width:none}
+html[data-look="book"] nav.toc h2{
+  font-family:var(--mono); font-weight:400; font-size:.82rem;
+  letter-spacing:.1em; margin:0 0 10px;
+  padding-bottom:10px; border-bottom:1px solid var(--rule-hard);
+}
+html[data-look="book"] nav.toc ol{
+  columns:2; column-gap:36px; padding-left:1.7em; margin:0;
+}
+html[data-look="book"] nav.toc li{break-inside:avoid; padding:4px 0}
+html[data-look="book"] nav.toc li::marker{
+  font-family:var(--mono); font-size:.8rem; color:var(--faint);
+}
+
+/* ── разделы: таймкод уходит на поле, а не торчит в заголовке ── */
+html[data-look="book"] h2[id]{position:relative; font-size:1.5rem; margin:56px 0 4px}
+html[data-look="book"] h3{font-size:1.14rem; margin:34px 0 2px}
+html[data-look="book"] h2[id] .ts{
+  position:absolute; left:-104px; width:88px; top:.5em;
+  text-align:right; background:none; border:0; border-radius:0;
+  padding:0; font-family:var(--mono); font-size:.76rem;
+  color:var(--faint); font-variant-numeric:tabular-nums;
+}
+html[data-look="book"] h2[id] .ts:hover{color:var(--accent); background:none}
+
+/* ── наборные среды вместо подкрашенных плашек ── */
+html[data-look="book"] .note,
+html[data-look="book"] .good,
+html[data-look="book"] .warn{
+  background:none; border:0; border-left:2px solid var(--accent);
+  border-radius:0; padding:0 0 0 18px; margin:26px 0;
+  font-style:italic; font-size:1.02rem;
+}
+/* замечание — без краски и без курсива: это не теорема */
+html[data-look="book"] .note{
+  border-left-color:transparent; padding-left:0; font-style:normal;
+}
+html[data-look="book"] .lbl{
+  font-style:normal; font-weight:700; font-family:var(--mono);
+  font-size:.76rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-right:10px; display:inline;
+}
+html[data-look="book"] .note .lbl{color:var(--muted)}
+/* ярлык идёт в подбор — перевод строки после него убираем */
+html[data-look="book"] .note > br:first-of-type,
+html[data-look="book"] .good > br:first-of-type,
+html[data-look="book"] .warn > br:first-of-type{display:none}
+
+/* перечисление без рамки: висячие тире */
+html[data-look="book"] .card{
+  background:none; border:0; border-radius:0; padding:0; margin:18px 0;
+}
+html[data-look="book"] .card ul{margin:0; padding:0; list-style:none}
+html[data-look="book"] .card li{position:relative; padding-left:22px; margin:9px 0}
+html[data-look="book"] .card li::before{
+  content:"—"; position:absolute; left:0; color:var(--faint);
+}
+
+/* ── таблица: линейки, без зебры и рамок ── */
+html[data-look="book"] table{
+  width:100%; border-collapse:collapse; font-size:.94rem;
+  font-variant-numeric:tabular-nums; box-shadow:none;
+}
+html[data-look="book"] th{
+  font-family:var(--mono); font-weight:400; font-size:.76rem;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+  text-align:left; padding:0 14px 8px 0; background:none;
+  border-bottom:2px solid var(--ink);
+}
+html[data-look="book"] td{
+  padding:9px 14px 9px 0; background:none;
+  border-bottom:1px solid var(--line);
+}
+html[data-look="book"] tr:nth-child(even) td{background:none}
+
+/* ── код: без скруглений, тонкая шапка ── */
+/* Цвета только через токены: подложка листинга светлая в бумажной теме
+   и тёмная в ночной, поэтому хардкод вроде rgba(255,255,255,.08) здесь
+   работал бы лишь в одной из них. */
+html[data-look="book"] .code{
+  border:1px solid var(--code-line); border-radius:0;
+  margin:26px 0; background:var(--code-paper);
+}
+html[data-look="book"] .code-head{
+  background:none; border-bottom:1px solid var(--code-line);
+  padding:7px 14px; font-family:var(--mono); font-size:.74rem;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+}
+html[data-look="book"] .code-head .copy{
+  border:0; border-bottom:1px solid var(--code-line);
+  border-radius:0; padding:0; color:var(--muted);
+}
+html[data-look="book"] .code-head .copy:hover{
+  color:var(--ink); border-color:var(--ink); background:none;
+}
+html[data-look="book"] pre, html[data-look="book"] pre.hl{
+  border-radius:0; margin:0;
+}
+html[data-look="book"] code{
+  background:var(--tag); border-radius:0; padding:1px 5px; font-size:.88em;
+}
+/* ВАЖНО: правило выше иначе протекает в код-блок и склеивает строки.
+   Здесь нельзя писать теги буквально: wrap_code() ниже ищет их
+   регуляркой по всему файлу и сматчится с этим комментарием. */
+html[data-look="book"] pre code{background:none; padding:0; font-size:inherit}
+
+/* ── иллюстрации: без скруглённой плашки ── */
+html[data-look="book"] .viz svg{border-radius:0}
+html[data-look="book"] .viz figcaption{
+  font-family:var(--mono); font-size:.86rem; line-height:1.55;
+}
+
+/* ── боковая рейка и соседние занятия ── */
+html[data-look="book"] .side-toc{
+  right:max(16px, calc(50% - 530px - 236px));
+  background:none; border:0; border-left:1px solid var(--line);
+  border-radius:0; box-shadow:none; padding:0 0 0 14px;
+}
+html[data-look="book"] .pager{
+  border-top:2px solid var(--ink); margin:64px 0 0; padding-top:20px;
+}
+html[data-look="book"] .pager a{
+  border:0; border-top:3px solid var(--accent); border-radius:0;
+  padding:10px 0 0; background:none;
+}
+html[data-look="book"] .pager a:hover{background:none}
+html[data-look="book"] .progress{height:2px}
+
+/* ── кнопка возврата к старому виду ──
+   Намеренно парная к переключателю темы: та же форма и размер, чтобы
+   читалась как кнопка, а не как обрывок текста рядом с ней. */
+.look-toggle{
+  font:inherit; font-size:.8rem; color:var(--muted);
+  background:none; border:1px solid var(--line);
+  padding:4px 10px; margin-left:8px; cursor:pointer;
+  white-space:nowrap;
+}
+.look-toggle:hover{color:var(--ink); border-color:var(--muted)}
+.look-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+/* в книжном виде — без скруглений, как весь остальной набор */
+html[data-look="book"] .look-toggle{border-radius:0}
+html[data-look="paper"] .look-toggle{border-radius:6px}
+
+@media(max-width:1100px){
+  /* на узком экране поле маргиналий не помещается — таймкод в строку */
+  html[data-look="book"] .wrap{padding:0 24px 44px}
+  html[data-look="book"] .top,
+  html[data-look="book"] .pager{margin-left:0}
+  html[data-look="book"] h2[id] .ts{
+    position:static; width:auto; text-align:left; margin-left:10px;
+  }
+  html[data-look="book"] nav.toc ol{columns:1}
+  html[data-look="book"] body{padding:0 12px 48px; font-size:17px}
+  html[data-look="book"] header.hero h1{font-size:1.85rem}
+}
+@media print{
+  html[data-look="book"] body{background:#fff; padding:0}
+  html[data-look="book"] .wrap{box-shadow:none; padding:0}
+  .look-toggle{display:none}
+}
+</style>
+"""
+
+# Выбор вида читается до первой отрисовки — иначе мелькнёт чужой вид.
+LOOK_BOOT = (
+    '<script>(function(){try{var l=localStorage.getItem("conspectusLook")||"book";'
+    'document.documentElement.setAttribute("data-look",l)}catch(e){'
+    'document.documentElement.setAttribute("data-look","book")}})();</script>\n'
+)
+
+LOOK_BTN = ""  # кнопка «старый вид» убрана
+
+LOOK_JS = (
+    '<script>(function(){var b=document.getElementById("look-toggle");if(!b)return;'
+    'var h=document.documentElement;'
+    'function label(){b.textContent=h.getAttribute("data-look")==="book"?"\u21a9 старый вид":"\u21aa новый вид"}'
+    'label();b.addEventListener("click",function(){'
+    'var next=h.getAttribute("data-look")==="book"?"paper":"book";'
+    'h.setAttribute("data-look",next);'
+    'try{localStorage.setItem("conspectusLook",next)}catch(e){}label()});})();</script>\n'
+)
+
+THEME_ANIM_JS = (
+    '<script>document.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("#theme-toggle")){'
+    'var h=document.documentElement;h.classList.add("theme-anim");setTimeout(function(){h.classList.remove("theme-anim")},350)}},true);'
+    'document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".code .copy");if(!b)return;'
+    'var pre=b.closest(".code").querySelector("pre"),t=pre.innerText;'
+    'function ok(){b.textContent="скопировано ✓";setTimeout(function(){b.textContent="копировать"},1600)}'
+    'function sel(){var r=document.createRange();r.selectNodeContents(pre);var x=getSelection();x.removeAllRanges();x.addRange(r);b.textContent="выделено — нажмите ⌘C"}'
+    'if(navigator.clipboard){navigator.clipboard.writeText(t).then(ok,sel)}else{sel()}});</script>'
+)
+
+OLD_TOP = (
+    '<button type="button" id="theme-toggle" class="theme-toggle" aria-label="Переключить тему" '
+    'title="Светлая / тёмная тема">🌙</button>\n<div class="wrap">\n'
+    '<a class="back" href="../index.html">← Все конспекты</a>\n'
+)
+NEW_TOP = (
+    '<div class="wrap">\n<div class="top"><a class="back" href="../index.html">← Все конспекты</a>'
+    '<button type="button" id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">тёмная тема</button></div>\n'
+)
+OLD_LABEL = 'textContent = t === "dark" ? "☀️" : "🌙";'
+NEW_LABEL = 'textContent = t === "dark" ? "светлая тема" : "тёмная тема";'
+
+
+# ---------- подсветка C++ ----------
+KEYWORDS = set("""if else for while do return break continue switch case default struct class public private protected
+const constexpr static auto using namespace template typename new delete true false nullptr sizeof operator inline
+this virtual friend enum typedef goto try catch throw noexcept mutable explicit""".split())
+TYPES = set("""int long short double float char bool void unsigned signed size_t string vector map set multiset unordered_map
+unordered_set pair queue deque stack priority_queue array bitset ll ld ull ui __int128 int64_t uint64_t int32_t uint32_t
+tuple function list greater less std mt19937 complex istream ostream""".split())
+TOKEN = re.compile(r"""(?P<c>//[^\n]*|/\*.*?\*/)|(?P<p>^[ \t]*\#[^\n]*)|(?P<s>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])')|(?P<n>\b(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)[uUlLfF]*\b)|(?P<w>[A-Za-z_]\w*)""", re.M | re.S)
+
+
+def highlight(code: str) -> str:
+    out, i = [], 0
+    for m in TOKEN.finditer(code):
+        out.append(html.escape(code[i:m.start()], quote=False))
+        tok = html.escape(m.group(0), quote=False)
+        kind = m.lastgroup
+        if kind == "w":
+            w = m.group(0)
+            rest = code[m.end():m.end() + 3].lstrip()
+            if w in KEYWORDS:
+                kind = "k"
+            elif w in TYPES:
+                kind = "t"
+            elif rest.startswith("("):
+                kind = "f"
+            else:
+                kind = None
+        out.append(f'<span class="{kind}">{tok}</span>' if kind else tok)
+        i = m.end()
+    out.append(html.escape(code[i:], quote=False))
+    return "".join(out)
+
+
+def looks_like_cpp(code: str) -> bool:
+    return any(x in code for x in (";", "{", "//", "#include", "cin", "cout"))
+
+
+CODE_WRAP = re.compile(r'<div class="code"><div class="code-head">.*?</div><pre class="hl"><code(?: data-lang="(\w+)")?>(.*?)</code></pre></div>', re.S)
+PLAIN = re.compile(r'<pre><code(?: data-lang="(\w+)")?>(.*?)</code></pre>', re.S)
+# явная метка языка: <pre><code data-lang="python"> — тогда без подсветки C++ и с нужной подписью
+LANG_LABELS = {"python": "Python", "shell": "терминал", "text": "текст"}
+
+
+def wrap_code(s: str) -> str:
+    def render(lang, raw_html):
+        code = html.unescape(re.sub(r"<[^>]+>", "", raw_html))
+        if lang in LANG_LABELS:
+            body, label, attr = html.escape(code, quote=False), LANG_LABELS[lang], f' data-lang="{lang}"'
+        else:
+            cpp = looks_like_cpp(code)
+            body = highlight(code) if cpp else html.escape(code, quote=False)
+            label, attr = ("C++" if cpp else "текст"), ""
+        return (f'<div class="code"><div class="code-head"><span>{label}</span>'
+                f'<button class="copy" type="button">копировать</button></div>'
+                f'<pre class="hl"><code{attr}>{body}</code></pre></div>')
+    s = CODE_WRAP.sub(lambda m: render(m.group(1), m.group(2)), s)
+    s = PLAIN.sub(lambda m: render(m.group(1), m.group(2)), s)
+    return s
+
+
+READER_JS = """<script id="reader">
+(function(){
+  var heads = [].slice.call(document.querySelectorAll(".wrap h2[id]"));
+  if (!heads.length) return;
+  var bar = document.createElement("div"); bar.className = "progress"; document.body.appendChild(bar);
+  function label(h){ var c = h.cloneNode(true); [].forEach.call(c.querySelectorAll(".ts"), function(x){ x.remove(); });
+    return c.textContent.replace(/^\\s*(?:\\d+\\.)+\\s*/, "").trim(); }
+  function links(box){ return heads.map(function(h){ var a = document.createElement("a"); a.href = "#" + h.id; a.textContent = label(h); box.appendChild(a); return a; }); }
+  var side = document.createElement("nav"); side.className = "side-toc"; side.setAttribute("aria-label", "Разделы");
+  side.innerHTML = "<p>Разделы</p>"; var sideLinks = links(side); document.body.appendChild(side);
+  var btn = document.createElement("button"); btn.className = "secbtn"; btn.type = "button"; btn.textContent = "≡ разделы";
+  btn.setAttribute("aria-expanded", "false");
+  var panel = document.createElement("nav"); panel.className = "secpanel"; panel.hidden = true; panel.setAttribute("aria-label", "Разделы");
+  var panelLinks = links(panel); document.body.appendChild(panel); document.body.appendChild(btn);
+  function toggle(open){ panel.hidden = !open; btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function(e){ e.stopPropagation(); toggle(panel.hidden); });
+  panel.addEventListener("click", function(e){ if (e.target.closest("a")) toggle(false); });
+  document.addEventListener("click", function(e){ if (!panel.hidden && !panel.contains(e.target)) toggle(false); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") toggle(false); });
+  var toc = document.querySelector(".toc"); var cur = -1; var ticking = false;
+  // Позиции заголовков и высота страницы меряются один раз, а не на каждом
+  // кадре прокрутки: getBoundingClientRect() по всем заголовкам — это до 44
+  // вынужденных пересчётов раскладки в кадр (столько разделов в конспекте по
+  // C++), и прокрутка из-за этого подлагивала. Перемер — на resize и load:
+  // KaTeX и картинки доезжают после первого кадра и сдвигают разметку.
+  var tops = [], tocEnd = 400, maxScroll = 0;
+  function measure(){
+    tops.length = 0;
+    for (var k = 0; k < heads.length; k++) tops.push(heads[k].getBoundingClientRect().top + scrollY);
+    tocEnd = toc ? toc.getBoundingClientRect().bottom + scrollY : 400;
+    maxScroll = document.documentElement.scrollHeight - innerHeight;
+  }
+  function update(){
+    ticking = false;
+    bar.style.transform = "scaleX(" + (maxScroll > 0 ? Math.min(1, scrollY / maxScroll) : 0) + ")";
+    var past = scrollY > tocEnd;
+    side.classList.toggle("show", past); btn.classList.toggle("show", past);
+    var lim = scrollY + innerHeight * 0.3;
+    var i = -1; for (var k = 0; k < tops.length; k++) if (tops[k] < lim) i = k;
+    if (i !== cur) {
+      [sideLinks, panelLinks].forEach(function(l){ if (cur >= 0) l[cur].classList.remove("on"); if (i >= 0) l[i].classList.add("on"); });
+      if (i >= 0 && side.classList.contains("show")) { var a = sideLinks[i]; if (a.offsetTop < side.scrollTop || a.offsetTop > side.scrollTop + side.clientHeight - 30) side.scrollTop = a.offsetTop - 60; }
+      cur = i;
+    }
+  }
+  addEventListener("scroll", function(){ if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+  addEventListener("resize", function(){ measure(); update(); });
+  addEventListener("load", function(){ measure(); update(); });
+  measure(); update();
+})();
+</script>"""
+
+# ---------- порядок занятий и поиск по разделам (из списка на главной) ----------
+LESSON_RE = re.compile(r'\{ n: "(\d+)", title: "([^"]+)"[^}]*?href: "([^"]+)"[^}]*\}')
+H_RE = re.compile(r'<(h[23])( id="([^"]+)")?>(.*?)</h[23]>', re.S)
+
+
+def lessons_order():
+    idx = (ROOT / "index.html").read_text(encoding="utf-8")
+    return sorted((int(n), title, href) for n, title, href in LESSON_RE.findall(idx))
+
+
+def clean(h):
+    h = re.sub(r'<a class="ts".*?</a>', "", h, flags=re.S)
+    h = html.unescape(re.sub(r"<[^>]+>", "", h)).strip()
+    return re.sub(r"^(?:\d+\.)+\s*", "", h)
+
+
+def add_h3_ids(s):
+    """У подзаголовков h3 появляются id вида s3-2, чтобы на них вели ссылки из поиска."""
+    parent, k = None, 0
+    def sub(m):
+        nonlocal parent, k
+        tag, has_id, hid, body = m.groups()
+        if tag == "h2":
+            parent, k = hid, 0
+            return m.group(0)
+        if has_id or not parent:
+            return m.group(0)
+        k += 1
+        return f'<h3 id="{parent}-{k}">{body}</h3>'
+    return H_RE.sub(sub, s)
+
+
+DROP_RE = re.compile(r"<(pre|svg|script|style|math)\b.*?</\1>|<span class=\"katex\".*?</span></span></span>|<[^>]+>", re.S)
+LATIN_RE = re.compile(r"[A-Za-z][A-Za-z0-9+']{2,}")
+
+
+def sections(s):
+    """[id, заголовок, ключевые слова]: латинские термины из прозы раздела (LCA, DSU, RMQ...) — для поиска."""
+    heads = [m for m in H_RE.finditer(s)]
+    out = []
+    for i, m in enumerate(heads):
+        hid, body = m.group(3), m.group(4)
+        if not (hid and clean(body)):
+            continue
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(s)
+        text = html.unescape(DROP_RE.sub(" ", s[m.end():end]))
+        kw = sorted({w.lower() for w in LATIN_RE.findall(text)})
+        out.append([hid, clean(body), " ".join(kw)])
+    return out
+
+
+def pager(path):
+    rel = f"lessons/{path.name}"
+    order = lessons_order()
+    pos = next((i for i, (_n, _t, h) in enumerate(order) if h == rel), None)
+    if pos is None:
+        return ""
+    def card(item, cls, arrow):
+        n, title, href = item
+        return (f'<a class="{cls}" href="../{href}"><small>{arrow[0]}видео {n:02d}{arrow[1]}</small>'
+                f'<b>{html.escape(title)}</b></a>')
+    prev = card(order[pos - 1], "prev", ("← ", "")) if pos > 0 else \
+        '<a class="prev" href="../index.html"><small>← к списку</small><b>Все конспекты</b></a>'
+    nxt = card(order[pos + 1], "next", ("", " →")) if pos + 1 < len(order) else \
+        '<a class="next" href="../index.html"><small>к списку</small><b>Все конспекты</b></a>'
+    return f'<nav class="pager" aria-label="Соседние занятия">{prev}{nxt}</nav>'
+
+
+def apply(path: Path) -> str:
+    s = path.read_text(encoding="utf-8")
+    block = f'<style id="paper">{CSS}</style>\n{THEME_ANIM_JS}\n'
+    if '<style id="paper">' in s:
+        s = re.sub(r'<style id="paper">.*?</style>\n<script>document\.addEventListener\("click".*?</script>\n', lambda _: block, s, count=1, flags=re.S)
+    else:
+        s = s.replace("</head>", block + "</head>", 1)
+    # чужие счётчики посещений не нужны
+    s = re.sub(r"<script>try\{if\(location\.protocol.*?</script>\n?", "", s, flags=re.S)
+    s = re.sub(r"<script data-goatcounter=.*?</script>\n?", "", s, flags=re.S)
+    s = re.sub(r"<script defer src='https://static\.cloudflareinsights.*?</script>\n?", "", s, flags=re.S)
+    s = s.replace(OLD_TOP, NEW_TOP, 1)
+    s = s.replace(OLD_LABEL, NEW_LABEL)
+
+    # ── книжный слой: палитра, краска параллели, кнопка возврата ──
+    acc_l, acc_d = ("#1a35c7", "#7e94ff")
+    accent = ('<style id="accent">html[data-look="book"]{'
+              f'--acc-l:{acc_l}; --acc-d:{acc_d}}}</style>\n')
+    s = re.sub(r'<style id="accent">.*?</style>\n', "", s, flags=re.S)
+    s = re.sub(r'<style id="book">.*?</style>\n?', "", s, flags=re.S)
+    s = re.sub(r'<script>\(function\(\)\{try\{var l=localStorage\.getItem\("conspectusLook"\).*?</script>\n', "", s, flags=re.S)
+    s = s.replace("</head>", accent + BOOK_CSS.lstrip() + LOOK_BOOT + "</head>", 1)
+
+    # кнопка — рядом с переключателем темы в шапке
+    s = re.sub(r'\s*<button type="button" id="look-toggle".*?</button>', "", s, flags=re.S)
+    s = s.replace('class="theme-toggle" aria-label="Переключить тему">тёмная тема</button>',
+                  'class="theme-toggle" aria-label="Переключить тему">тёмная тема</button>' + LOOK_BTN, 1)
+    s = re.sub(r'<script>\(function\(\)\{var b=document\.getElementById\("look-toggle"\).*?</script>\n', "", s, flags=re.S)
+    s = s.replace("</body>", LOOK_JS + "</body>", 1)
+
+    # кнопка «Скачать конспект» (сам файл автономен)
+    if 'class="back dl"' not in s:
+        s = s.replace('<button type="button" id="theme-toggle"',
+                      f'<a class="back dl" href="{path.name}" download="{path.name}" title="Скачать конспект одним HTML-файлом, откроется без интернета">⬇ Скачать конспект</a>'
+                      '<button type="button" id="theme-toggle"', 1)
+        s = s.replace("</head>", '<style id="dlstyle">.top{flex-wrap:wrap}.top .dl{margin-left:auto;margin-right:8px;white-space:nowrap}</style></head>', 1)
+
+    s = wrap_code(s)
+    s = add_h3_ids(s)
+    nav = pager(path)
+    s = re.sub(r'\n?<nav class="pager".*?</nav>', "", s, flags=re.S)
+    if nav:
+        s = s.replace("\n</div>\n\n<button class=\"toplink\"", "\n" + nav + "\n</div>\n\n<button class=\"toplink\"", 1)
+    s = re.sub(r'<script id="reader">.*?</script>\n', "", s, flags=re.S)
+    s = s.replace("</body>", READER_JS + "\n</body>", 1)
+    path.write_text(s, encoding="utf-8")
+    SEARCH[f"{path.parent.name}/{path.name}"] = sections(s)
+    ok = '<div class="top">' in s and NEW_LABEL in s
+    return "ok" if ok else "проверьте вручную: не найдена шапка или переключатель темы"
+
+
+def main():
+    files = [Path(a) for a in sys.argv[1:]] or sorted(ROOT.glob("lessons/*.html"))
+    for f in files:
+        print(f"{f.name}: {apply(f)}")
+    # индекс разделов для поиска на главной
+    idx_path = ROOT / "index.html"
+    idx = idx_path.read_text(encoding="utf-8")
+    m = re.search(r"/\*SECTIONS\*/const SECTIONS = (.*?);/\*/SECTIONS\*/", idx, re.S)
+    if m:
+        data = json.loads(m.group(1))
+        data.update(SEARCH)
+        js = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        idx = idx[: m.start(1)] + js + idx[m.end(1):]
+        idx_path.write_text(idx, encoding="utf-8")
+        print(f"index.html: разделов в поиске — {sum(len(v) for v in data.values())}")
+
+
+if __name__ == "__main__":
+    main()
